@@ -4,7 +4,7 @@ plugins {
     id 'java'
     id 'idea'
     id 'jacoco'
-    id "org.sonarqube" version "7.2.1.6560"
+    id "org.sonarqube" version "7.2.3.7755"
 }
 
 group = 'ch.uzh.ifi.hasel'
@@ -56,8 +56,8 @@ bootJar {
 
 sonar {
     properties {
-        property "sonar.projectKey", "TODO"
-        property "sonar.organization", "TODO"
+        property "sonar.projectKey", "Yan-Lue_sopra-fs26-group-24-server"
+        property "sonar.organization", "sopra-fs26-group-24"
         property "sonar.host.url", "https://sonarcloud.io"
     }
 }
