@@ -38,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * This tests if the UserController works.
  */
 @WebMvcTest(UserController.class)
-public class UserControllerTest {
+class UserControllerTest {
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -47,7 +47,7 @@ public class UserControllerTest {
 	private UserService userService;
 
 	@Test
-	public void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
+    void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
 		// given
 		User user = new User();
 		user.setName("Firstname Lastname");
@@ -72,7 +72,7 @@ public class UserControllerTest {
 	}
 
 	@Test
-	public void createUser_validInput_userCreated() throws Exception {
+	void createUser_validInput_userCreated() throws Exception {
 		// given
 		User user = new User();
 		user.setId(1L);
@@ -88,7 +88,7 @@ public class UserControllerTest {
 		given(userService.createUser(Mockito.any())).willReturn(user);
 
 		// when/then -> do the request + validate the result
-		MockHttpServletRequestBuilder postRequest = post("/users")
+		MockHttpServletRequestBuilder postRequest = post("/register")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(asJsonString(userPostDTO));
 
@@ -102,7 +102,7 @@ public class UserControllerTest {
 	}
 
 	@Test
-	public void createGuestUser_validInput_guestUserCreated() throws Exception {
+	void createGuestUser_validInput_guestUserCreated() throws Exception {
 		GuestUser guestUser = new GuestUser();
 		guestUser.setId(1L);
 		guestUser.setToken("Guest-randomToken");
