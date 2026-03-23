@@ -11,8 +11,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,11 +33,14 @@ public class UserService {
 	private final Logger log = LoggerFactory.getLogger(UserService.class);
 
 	private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+	private final GuestUserRepository guestUserRepository;
+	private final PasswordEncoder passwordEncoder;
 
-	public UserService(@Qualifier("userRepository") UserRepository userRepository) {
+	public UserService(@Qualifier("userRepository") UserRepository userRepository,
+			GuestUserRepository guestUserRepository) {
 		this.userRepository = userRepository;
-        this.passwordEncoder = new BCryptPasswordEncoder(12);
+		this.guestUserRepository = guestUserRepository;
+		this.passwordEncoder = new BCryptPasswordEncoder(12);
 	}
 
 	public List<User> getUsers() {
@@ -43,10 +48,10 @@ public class UserService {
 	}
 
 	public User createUser(User newUser) {
-        checkIfUserExists(newUser);
+		checkIfUserExists(newUser);
 
-        String hashedPassword = passwordEncoder.encode(newUser.getPassword());
-        newUser.setPassword(hashedPassword);
+		String hashedPassword = passwordEncoder.encode(newUser.getPassword());
+		newUser.setPassword(hashedPassword);
 
 		newUser.setToken(UUID.randomUUID().toString());
 		newUser.setStatus(UserStatus.ONLINE);
@@ -57,6 +62,21 @@ public class UserService {
 
 		log.debug("Created Information for User: {}", newUser);
 		return newUser;
+	}
+
+	public GuestUser createGuestUser() {
+
+		GuestUser newGuestUser = new GuestUser();
+		String randomUsername = generateGuestUsername();
+
+		newGuestUser.setUsername(randomUsername);
+		newGuestUser.setToken("Guest-" + UUID.randomUUID().toString());
+		newGuestUser.setStatus(UserStatus.ONLINE);
+
+		newGuestUser = guestUserRepository.save(newGuestUser);
+		userRepository.flush();
+
+		return newGuestUser;
 	}
 
 	/**
@@ -73,7 +93,13 @@ public class UserService {
 		User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
 
 		if (userByUsername != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username is already taken");
-        }
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Username is already taken");
+		}
+	}
+
+	public String generateGuestUsername() {
+		// Generates a short random string from the first 5 characters of a UUID
+		String randomSuffix = UUID.randomUUID().toString().substring(0, 5);
+		return "Guest-" + randomSuffix;
 	}
 }
