@@ -8,6 +8,7 @@ public class UserGetDTO {
 	private String name;
 	private String username;
 	private UserStatus status;
+    private String bio;
 
 	public Long getId() {
 		return id;
@@ -40,4 +41,12 @@ public class UserGetDTO {
 	public void setStatus(UserStatus status) {
 		this.status = status;
 	}
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
 }
