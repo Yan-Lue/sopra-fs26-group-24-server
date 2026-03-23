@@ -3,8 +3,8 @@ package ch.uzh.ifi.hase.soprafs26.controller;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
-
 import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
@@ -99,6 +99,27 @@ public class UserControllerTest {
 				.andExpect(jsonPath("$.name", is(user.getName())))
 				.andExpect(jsonPath("$.username", is(user.getUsername())))
 				.andExpect(jsonPath("$.status", is(user.getStatus().toString())));
+	}
+
+	@Test
+	public void createGuestUser_validInput_guestUserCreated() throws Exception {
+		GuestUser guestUser = new GuestUser();
+		guestUser.setId(1L);
+		guestUser.setToken("Guest-randomToken");
+		guestUser.setUsername("Guest-12345");
+		guestUser.setStatus(UserStatus.ONLINE);
+
+		given(userService.createGuestUser()).willReturn(guestUser);
+
+		MockHttpServletRequestBuilder postRequest = post("/register")
+				.contentType(MediaType.APPLICATION_JSON);
+
+		mockMvc.perform(postRequest)
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.id", is(guestUser.getId().intValue())))
+				.andExpect(jsonPath("$.username", is(guestUser.getUsername())))
+				.andExpect(jsonPath("$.token", is(guestUser.getToken())))
+				.andExpect(jsonPath("$.status", is(guestUser.getStatus().toString())));
 	}
 
 	/**
