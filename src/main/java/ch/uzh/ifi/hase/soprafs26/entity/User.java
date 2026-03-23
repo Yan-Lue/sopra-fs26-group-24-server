@@ -22,14 +22,17 @@ public class User implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
+	// done using Gemini: Like this the ID's are sequentially created for both guest
+	// and normal users which shoudl avoid ID collisions in the frontend
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "shared_user_sequence")
+	@SequenceGenerator(name = "shared_user_sequence", sequenceName = "shared_user_sequence", allocationSize = 1)
 	private Long id;
 
 	@Column(nullable = false)
 	private String name;
 
-	@Column(nullable = false)
+	@Column(nullable = false, unique = true)
 	private String username;
 
 	@Column(nullable = false, unique = true)
@@ -38,11 +41,11 @@ public class User implements Serializable {
 	@Column(nullable = false)
 	private UserStatus status;
 
-    @Column(nullable = false)
-    private String password;
+	@Column(nullable = false)
+	private String password;
 
-    @Column(nullable = true)
-    private String bio;
+	@Column(nullable = true)
+	private String bio;
 
 	public Long getId() {
 		return id;
@@ -84,19 +87,19 @@ public class User implements Serializable {
 		this.status = status;
 	}
 
-    public String getPassword() {
-        return password;
-    }
+	public String getPassword() {
+		return password;
+	}
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
+	public void setPassword(String password) {
+		this.password = password;
+	}
 
-    public String getBio() {
-        return bio;
-    }
+	public String getBio() {
+		return bio;
+	}
 
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
+	public void setBio(String bio) {
+		this.bio = bio;
+	}
 }
