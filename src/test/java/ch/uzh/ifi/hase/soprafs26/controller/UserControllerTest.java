@@ -122,6 +122,54 @@ class UserControllerTest {
 				.andExpect(jsonPath("$.status", is(guestUser.getStatus().toString())));
 	}
 
+	// POST Mapping /login successful 200
+	@Test
+	void loginUser_validInput_userLoggedIn() throws Exception {
+		User user = new User();
+		user.setId(1L);
+		user.setName("Test User");
+		user.setUsername("testUsername");
+		user.setToken("1");
+		user.setStatus(UserStatus.ONLINE);
+
+		UserPostDTO userPostDTO = new UserPostDTO();
+		userPostDTO.setUsername("testUsername");
+		userPostDTO.setPassword("testPassword");
+
+		given(userService.loginUser("testUsername", "testPassword")).willReturn(user);
+
+		MockHttpServletRequestBuilder postRequest = post("/login")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(asJsonString(userPostDTO));
+
+		mockMvc.perform(postRequest)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id", is(user.getId().intValue())))
+				.andExpect(jsonPath("$.name", is(user.getName())))
+				.andExpect(jsonPath("$.username", is(user.getUsername())))
+				.andExpect(jsonPath("$.token", is(user.getToken())))
+				.andExpect(jsonPath("$.status", is(user.getStatus().toString())));
+		
+	}
+
+	// POST Mapping /login with wrong password 401
+	@Test
+	public void loginUser_invalidInput_userNotLoggedIn() throws Exception {
+		UserPostDTO userPostDTO = new UserPostDTO();
+		userPostDTO.setUsername("testUsername");
+		userPostDTO.setPassword("invalidPassword");
+
+		given(userService.loginUser("testUsername", "invalidPassword")).willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
+
+		MockHttpServletRequestBuilder postRequest = post("/login")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(asJsonString(userPostDTO));
+
+		mockMvc.perform(postRequest)
+				.andExpect(status().isUnauthorized());
+
+	}
+
 	/**
 	 * Helper Method to convert userPostDTO into a JSON string such that the input
 	 * can be processed

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
@@ -79,5 +80,71 @@ class UserServiceIntegrationTest {
 
 		// check that an error is thrown
 		assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser2));
+	}
+
+	@Test
+	void createUser_passwordIsHashed_notStoredInPlaintext() {
+		User user = new User();
+		user.setName("testName");
+		user.setUsername("testUsername");
+		user.setPassword("plainPassword123");
+		user.setBio("testBio");
+
+		User createdUser = userService.createUser(user);
+		User persistedUser = userRepository.findByUsername("testUsername");
+
+		assertNotNull(persistedUser);
+		assertNotEquals("plainPassword123", persistedUser.getPassword());
+		assertTrue(new BCryptPasswordEncoder().matches("plainPassword123", persistedUser.getPassword()));
+		assertEquals(createdUser.getId(), persistedUser.getId());
+	}
+
+	@Test
+	void loginUser_unknownUsername_throwsUnauthorized() {
+		ResponseStatusException exception = assertThrows(
+            ResponseStatusException.class,
+            () -> userService.loginUser("doesNotExist", "anyPassword")
+    );
+
+    assertEquals(401, exception.getStatusCode().value());
+    assertTrue(exception.getReason().contains("Invalid username or password"));
+	}
+
+	@Test
+	void loginUser_wrongPassword_throwsUnauthorized() {
+		User user = new User();
+		user.setName("testName");
+		user.setUsername("testUsername");
+		user.setPassword("correctPassword");
+		user.setBio("testBio");
+		userService.createUser(user);
+
+		ResponseStatusException exception = assertThrows(
+				ResponseStatusException.class,
+				() -> userService.loginUser("testUsername", "wrongPassword")
+		);
+
+		assertEquals(401, exception.getStatusCode().value());
+		assertTrue(exception.getReason().contains("Invalid username or password"));
+	}
+
+	@Test
+	void loginUser_validCredentials_successAndTokenRotates() {
+		User user = new User();
+		user.setName("testName");
+		user.setUsername("testUsername");
+		user.setPassword("testPassword");
+		user.setBio("testBio");
+
+		User createdUser = userService.createUser(user);
+		String tokenBeforeLogin = createdUser.getToken();
+
+		User loggedInUser = userService.loginUser("testUsername", "testPassword");
+
+		assertEquals(createdUser.getId(), loggedInUser.getId());
+		assertEquals("testUsername", loggedInUser.getUsername());
+		assertEquals(UserStatus.ONLINE, loggedInUser.getStatus());
+		assertNotNull(loggedInUser.getToken());
+		assertNotEquals(tokenBeforeLogin, loggedInUser.getToken());
 	}
 }

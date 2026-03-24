@@ -76,7 +76,24 @@ public class UserService {
 		newGuestUser = guestUserRepository.save(newGuestUser);
 		userRepository.flush();
 
+		log.debug("Created Information for Guest User: {}", newGuestUser);
 		return newGuestUser;
+	}
+
+	public User loginUser(String username, String password) {
+		User user = userRepository.findByUsername(username);
+
+		if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+		}
+
+		user.setStatus(UserStatus.ONLINE);
+		user.setToken(UUID.randomUUID().toString());
+		userRepository.save(user);
+		userRepository.flush();
+
+		log.debug("User logged in: {}", user);
+		return user;
 	}
 
 	/**
