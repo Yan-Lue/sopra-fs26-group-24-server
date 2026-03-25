@@ -74,7 +74,7 @@ public class UserService {
 		newGuestUser.setStatus(UserStatus.ONLINE);
 
 		newGuestUser = guestUserRepository.save(newGuestUser);
-		userRepository.flush();
+		guestUserRepository.flush();
 
 		log.debug("Created Information for Guest User: {}", newGuestUser);
 		return newGuestUser;
@@ -108,10 +108,15 @@ public class UserService {
 	 */
 	private void checkIfUserExists(User userToBeCreated) {
 		User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
+        User userByEmail = userRepository.findByEmail(userToBeCreated.getEmail());
 
 		if (userByUsername != null) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "Username is already taken");
 		}
+
+        if (userByEmail != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email is already registered");
+        }
 	}
 
 	public String generateGuestUsername() {

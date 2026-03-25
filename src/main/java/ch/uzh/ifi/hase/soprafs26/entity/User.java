@@ -47,6 +47,9 @@ public class User implements Serializable {
 	@Column(nullable = true)
 	private String bio;
 
+    @Column(nullable = false, unique = true)
+    private String email;
+
 	public Long getId() {
 		return id;
 	}
@@ -102,4 +105,12 @@ public class User implements Serializable {
 	public void setBio(String bio) {
 		this.bio = bio;
 	}
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
 }

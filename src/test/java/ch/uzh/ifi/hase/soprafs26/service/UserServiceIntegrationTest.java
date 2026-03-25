@@ -46,6 +46,7 @@ class UserServiceIntegrationTest {
 		testUser.setUsername("testUsername");
         testUser.setPassword("testPassword");
         testUser.setBio("testBio");
+        testUser.setEmail("test@test.com");
 
 		// when
 		User createdUser = userService.createUser(testUser);
@@ -56,6 +57,7 @@ class UserServiceIntegrationTest {
 		assertEquals(testUser.getUsername(), createdUser.getUsername());
 		assertNotNull(createdUser.getToken());
 		assertEquals(UserStatus.ONLINE, createdUser.getStatus());
+        assertEquals(testUser.getEmail(), createdUser.getEmail());
 	}
 
 	@Test
@@ -67,6 +69,7 @@ class UserServiceIntegrationTest {
 		testUser.setUsername("testUsername");
         testUser.setPassword("testPassword");
         testUser.setBio("testBio");
+        testUser.setEmail("test@test.com");
 		userService.createUser(testUser);
 
 		// attempt to create second user with same username
@@ -77,6 +80,7 @@ class UserServiceIntegrationTest {
 		testUser2.setUsername("testUsername");
         testUser2.setPassword("testPassword2");
         testUser2.setBio("testBio2");
+        testUser2.setEmail("test@test2.com");
 
 		// check that an error is thrown
 		assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser2));
@@ -89,6 +93,7 @@ class UserServiceIntegrationTest {
 		user.setUsername("testUsername");
 		user.setPassword("plainPassword123");
 		user.setBio("testBio");
+        user.setEmail("test@test.com");
 
 		User createdUser = userService.createUser(user);
 		User persistedUser = userRepository.findByUsername("testUsername");
@@ -98,6 +103,29 @@ class UserServiceIntegrationTest {
 		assertTrue(new BCryptPasswordEncoder().matches("plainPassword123", persistedUser.getPassword()));
 		assertEquals(createdUser.getId(), persistedUser.getId());
 	}
+
+    @Test
+    void createUser_duplicateEmail_throwsException() {
+        assertNull(userRepository.findByUsername("testUsername"));
+
+        User testUser = new User();
+        testUser.setName("testName");
+        testUser.setUsername("testUsername");
+        testUser.setPassword("testPassword");
+        testUser.setBio("testBio");
+        testUser.setEmail("test@test.com");
+        userService.createUser(testUser);
+
+        User testUser2 = new User();
+
+        testUser2.setName("testName2");
+        testUser2.setUsername("testUsername2");
+        testUser2.setPassword("testPassword2");
+        testUser2.setBio("testBio2");
+        testUser2.setEmail("test@test.com");
+
+        assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser2));
+    }
 
 	@Test
 	void loginUser_unknownUsername_throwsUnauthorized() {
@@ -117,6 +145,7 @@ class UserServiceIntegrationTest {
 		user.setUsername("testUsername");
 		user.setPassword("correctPassword");
 		user.setBio("testBio");
+        user.setEmail("test@test.com");
 		userService.createUser(user);
 
 		ResponseStatusException exception = assertThrows(
@@ -135,6 +164,7 @@ class UserServiceIntegrationTest {
 		user.setUsername("testUsername");
 		user.setPassword("testPassword");
 		user.setBio("testBio");
+        user.setEmail("test@test.com");
 
 		User createdUser = userService.createUser(user);
 		String tokenBeforeLogin = createdUser.getToken();
