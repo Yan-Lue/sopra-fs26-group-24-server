@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,7 +48,7 @@ public class UserController {
 	@PostMapping("/register")
 	@ResponseStatus(HttpStatus.CREATED)
 	@ResponseBody
-	public UserGetDTO createUser(@RequestBody(required = false) UserPostDTO userPostDTO) {
+	public UserGetDTO createUser(@Valid @RequestBody(required = false) UserPostDTO userPostDTO) {
 		// differentiate between guest User or "regular User"
 		if (userPostDTO == null || userPostDTO.getUsername() == null) {
 

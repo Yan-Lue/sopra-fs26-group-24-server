@@ -80,6 +80,7 @@ class UserControllerTest {
 		user.setUsername("testUsername");
 		user.setToken("1");
 		user.setStatus(UserStatus.ONLINE);
+        user.setEmail("test@test.com");
 
 		UserPostDTO userPostDTO = new UserPostDTO();
 		userPostDTO.setName("Test User");
@@ -154,7 +155,7 @@ class UserControllerTest {
 
 	// POST Mapping /login with wrong password 401
 	@Test
-	public void loginUser_invalidInput_userNotLoggedIn() throws Exception {
+	void loginUser_invalidInput_userNotLoggedIn() throws Exception {
 		UserPostDTO userPostDTO = new UserPostDTO();
 		userPostDTO.setUsername("testUsername");
 		userPostDTO.setPassword("invalidPassword");
@@ -169,6 +170,34 @@ class UserControllerTest {
 				.andExpect(status().isUnauthorized());
 
 	}
+
+    // POST Mapping /register with invalid email
+    @Test
+    void createUser_invalidEmail_throwsException() throws Exception {
+        User user = new User();
+        user.setId(1L);
+        user.setName("Test User");
+        user.setUsername("testUsername");
+        user.setToken("1");
+        user.setStatus(UserStatus.ONLINE);
+        user.setEmail("obvious invalid email");
+
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setName("Test User");
+        userPostDTO.setUsername("testUsername");
+        userPostDTO.setEmail("obvious invalid email");
+
+        given(userService.createUser(Mockito.any())).willReturn(user);
+
+        // when/then -> do the request + validate the result
+        MockHttpServletRequestBuilder postRequest = post("/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO));
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isBadRequest());
+    }
 
 	/**
 	 * Helper Method to convert userPostDTO into a JSON string such that the input

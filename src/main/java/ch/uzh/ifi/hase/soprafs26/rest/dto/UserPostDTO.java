@@ -1,11 +1,16 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto;
 
+import jakarta.validation.constraints.Email;
+
 public class UserPostDTO {
 
 	private String name;
 	private String username;
     private String bio;
     private String password;
+
+    @Email(message = "Invalid Email format", regexp = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
+    private String email;
 
 	public String getName() {
 		return name;
@@ -37,5 +42,13 @@ public class UserPostDTO {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }
