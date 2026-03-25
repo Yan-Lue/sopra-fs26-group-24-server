@@ -77,4 +77,9 @@ public class UserController {
 		User loggedInUser = userService.loginUser(userInput.getUsername(), userInput.getPassword());
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(loggedInUser);
 	}
+
+    @GetMapping("/mydatabase")
+    public String testConnection() {
+        return "Database is running!";
+    }
 }

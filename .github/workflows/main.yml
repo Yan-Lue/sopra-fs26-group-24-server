@@ -41,6 +41,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Create app.yaml
+        run: |
+            printf "runtime: java17\ninstance_class: F2\nenv_variables:\n  DB_HOST: ${{ secrets.DB_HOST }}\n  DB_PORT: ${{ secrets.DB_PORT }}\n  DB_NAME: ${{ secrets.DB_NAME }}\n  DB_USER: ${{ secrets.DB_USER }}\n  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}\n" > app.yaml
+
       - name: Deploy to App Engine
         id: deploy
         uses: google-github-actions/deploy-appengine@v0.2.0
@@ -48,6 +52,7 @@ jobs:
           deliverables: app.yaml
           version: v1
           credentials: ${{ secrets.GCP_SERVICE_CREDENTIALS }}
+          project_id: ''
 
       - name: Test
         run: curl "${{ steps.deploy.outputs.url }}"
