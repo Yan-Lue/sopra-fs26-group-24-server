@@ -51,7 +51,7 @@ jobs:
           echo "Postgres did not start in time" && exit 1
       
       - name: Test and analyze
-        run: ./gradlew test jacocoTestReport sonar
+        run: ./gradlew test jacocoTestReport sonar -Dspring.profiles.active=test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
