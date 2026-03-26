@@ -38,6 +38,7 @@ public class User implements Serializable {
 	@Column(nullable = false, unique = true)
 	private String token;
 
+	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
 	private UserStatus status;
 
@@ -47,8 +48,8 @@ public class User implements Serializable {
 	@Column(nullable = true)
 	private String bio;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+	@Column(nullable = false, unique = true)
+	private String email;
 
 	public Long getId() {
 		return id;
@@ -106,11 +107,11 @@ public class User implements Serializable {
 		this.bio = bio;
 	}
 
-    public String getEmail() {
-        return email;
-    }
+	public String getEmail() {
+		return email;
+	}
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+	public void setEmail(String email) {
+		this.email = email;
+	}
 }
