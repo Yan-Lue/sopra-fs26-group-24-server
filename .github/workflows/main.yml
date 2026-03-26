@@ -44,7 +44,7 @@ jobs:
       - name: Wait for Postgres
         run: |
           for i in {1..10}; do
-            nc -z localhost 5432 && "Postgres is up!" && exit 0
+            nc -z postgres 5432 && "Postgres is up!" && exit 0
             echo "Waiting for Postgres..."
             sleep 3
           done
@@ -55,7 +55,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          DB_HOST: localhost
+          DB_HOST: postgres
           DB_PORT: 5432
           DB_NAME: mydatabase
           DB_USER: myuser
