@@ -55,11 +55,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: testdb
-          DB_USER: testuser
-          DB_PASSWORD: testpassword
 
   deploy:
     name: Deploying to Google Cloud
