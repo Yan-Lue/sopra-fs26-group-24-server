@@ -17,13 +17,13 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpassword
-          POSTGRES_DB: testdb
+          POSTGRES_USER: myuser
+          POSTGRES_PASSWORD: mypassword
+          POSTGRES_DB: mydatabase
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready -U testuser
+          --health-cmd pg_isready -U myuser
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -55,6 +55,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: mydatabase
+          DB_USER: myuser
+          DB_PASSWORD: mypassword
 
   deploy:
     name: Deploying to Google Cloud
