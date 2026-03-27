@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -46,5 +47,14 @@ public class SessionService {
         if (sessionName == null || maxPlayers == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create Session");
         }
+    }
+
+    public Movie getNextMovie(Long sessionId) {
+        Session session = sessionRepository.findSessionById(sessionId);
+        Integer roundLimit = session.getRoundLimit();
+        //DB Request from collection session_session_movie_id, parse through them (with global index maybe?)
+        //return the current movie with all data to display in frontend
+        Movie movie = new Movie();
+        return movie;
     }
 }
