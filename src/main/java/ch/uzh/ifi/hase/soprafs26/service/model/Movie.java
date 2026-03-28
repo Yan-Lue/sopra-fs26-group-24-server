@@ -12,9 +12,6 @@ public class Movie {
     private String releaseDate;
     private List<String> genres;
 
-    public Movie() {
-    }
-
     public Movie(Long id, String title, String overview, String posterPath,
                  Double rating, String releaseDate, List<String> genres) {
         this.id = id;
