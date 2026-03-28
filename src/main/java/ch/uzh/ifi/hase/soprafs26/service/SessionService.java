@@ -49,6 +49,16 @@ public class SessionService {
         return newSession;
     }
 
+    public Session getSessionById(Long sessionId) {
+        Session session = sessionRepository.findSessionBysessionId(sessionId);
+
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
+        }
+
+        return session;
+    }
+
     private void checkValidSessionCreation(Session newSession) {
         String sessionName = newSession.getSessionName();
         Integer maxPlayers = newSession.getMaxPlayers();

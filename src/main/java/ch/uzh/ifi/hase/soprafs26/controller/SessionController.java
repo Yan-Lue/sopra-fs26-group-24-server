@@ -32,6 +32,13 @@ public class SessionController {
         return DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(createdSession);
     }
 
+    @GetMapping("/session/{sessionId}")
+    @ResponseStatus(HttpStatus.OK)
+    public SessionGetDTO getSession(@PathVariable Long sessionId) {
+        Session session = sessionService.getSessionById(sessionId);
+        return DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(session);
+    }
+
     @GetMapping("/session/{sessionId}/next")
     @ResponseStatus(HttpStatus.OK)
     public MovieGetDTO getNextMovie(@PathVariable Long sessionId) {
