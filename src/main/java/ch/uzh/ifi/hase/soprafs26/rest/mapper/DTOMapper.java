@@ -1,15 +1,13 @@
 package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.*;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
 import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPostDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 
 /**
  * DTOMapper
@@ -49,10 +47,21 @@ public interface DTOMapper {
 
 	@Mapping(source = "sessionName", target = "sessionName")
 	@Mapping(source = "maxPlayers", target = "maxPlayers")
+    @Mapping(source = "roundLimit", target = "roundLimit")
 	@Mapping(source = "hostId", target = "hostId")
 	Session convertSessionPostDTOtoEntity(SessionPostDTO sessionPostDTO);
 
 	@Mapping(source = "sessionCode", target = "sessionCode")
 	@Mapping(source = "sessionToken", target = "sessionToken")
+    @Mapping(source = "sessionId", target = "sessionId")
 	SessionGetDTO convertEntitytoSessionGetDTO(Session createdSession);
+
+    @Mapping(source = "id", target = "movieId")
+    @Mapping(source = "title", target = "title")
+    @Mapping(source = "overview", target = "description")
+    @Mapping(source = "posterPath", target = "posterPath")
+    @Mapping(source = "rating", target = "rating")
+    @Mapping(source = "releaseDate", target = "releaseDate")
+    @Mapping(source = "genres", target = "genres")
+    MovieGetDTO convertMovieGetDTOtoEntity(Movie movie);
 }
