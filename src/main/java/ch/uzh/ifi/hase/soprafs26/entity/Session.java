@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs26.entity;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -31,6 +32,9 @@ public class Session implements Serializable {
     private Integer roundLimit;
 
     @Column(nullable = false)
+    private Integer currentMovieIndex;
+
+    @Column(nullable = false)
     private Long hostId;
 
     @Enumerated(EnumType.STRING)
@@ -44,7 +48,9 @@ public class Session implements Serializable {
     private String sessionToken;
 
     @ElementCollection
-    private List<Long> sessionMovieIds;
+    @CollectionTable(name = "session_session_movie_id", joinColumns = @JoinColumn(name = "session_id"))
+    @Column(name = "movie_id", nullable = false)
+    private List<Long> sessionMovieIds = new ArrayList<>();
 
     public Long getSessionId() {
         return sessionId;
@@ -84,6 +90,14 @@ public class Session implements Serializable {
 
     public void setRoundLimit(Integer roundLimit) {
         this.roundLimit = roundLimit;
+    }
+
+    public Integer getCurrentMovieIndex() {
+        return currentMovieIndex;
+    }
+
+    public void setCurrentMovieIndex(Integer currentMovieIndex) {
+        this.currentMovieIndex = currentMovieIndex;
     }
 
     public Long getHostId() {

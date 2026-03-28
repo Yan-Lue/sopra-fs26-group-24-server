@@ -9,7 +9,7 @@ public class MovieGetDTO {
     private String posterPath;
     private Double rating;
     private String releaseDate;
-    private List<GenreDTO> genres;
+    private List<String> genres;
 
     public Long getMovieId() {
         return movieId;
@@ -58,11 +58,11 @@ public class MovieGetDTO {
         this.releaseDate = releaseDate;
     }
 
-    public List<GenreDTO> getGenres() {
+    public List<String> getGenres() {
         return genres;
     }
 
-    public void setGenres(List<GenreDTO> genres) {
+    public void setGenres(List<String> genres) {
         this.genres = genres;
     }
 }

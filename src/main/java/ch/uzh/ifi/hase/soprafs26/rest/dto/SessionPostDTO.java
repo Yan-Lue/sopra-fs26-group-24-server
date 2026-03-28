@@ -4,6 +4,7 @@ public class SessionPostDTO {
 
     private String sessionName;
     private Integer maxPlayers;
+    private Integer roundLimit;
     private Long hostId;
 
     public String getSessionName() {
@@ -20,6 +21,14 @@ public class SessionPostDTO {
 
     public void setMaxPlayers(Integer maxPlayers) {
         this.maxPlayers = maxPlayers;
+    }
+
+    public Integer getRoundLimit() {
+        return roundLimit;
+    }
+
+    public void setRoundLimit(Integer roundLimit) {
+        this.roundLimit = roundLimit;
     }
 
     public Long getHostId() {

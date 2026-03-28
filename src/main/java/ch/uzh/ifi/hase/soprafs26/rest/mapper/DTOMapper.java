@@ -47,20 +47,21 @@ public interface DTOMapper {
 
 	@Mapping(source = "sessionName", target = "sessionName")
 	@Mapping(source = "maxPlayers", target = "maxPlayers")
+    @Mapping(source = "roundLimit", target = "roundLimit")
 	@Mapping(source = "hostId", target = "hostId")
 	Session convertSessionPostDTOtoEntity(SessionPostDTO sessionPostDTO);
 
 	@Mapping(source = "sessionCode", target = "sessionCode")
 	@Mapping(source = "sessionToken", target = "sessionToken")
+    @Mapping(source = "sessionId", target = "sessionId")
 	SessionGetDTO convertEntitytoSessionGetDTO(Session createdSession);
 
-    @Mapping(source = "movieId", target = "movieId")
+    @Mapping(source = "id", target = "movieId")
     @Mapping(source = "title", target = "title")
-    @Mapping(source = "description", target = "description")
+    @Mapping(source = "overview", target = "description")
     @Mapping(source = "posterPath", target = "posterPath")
     @Mapping(source = "rating", target = "rating")
     @Mapping(source = "releaseDate", target = "releaseDate")
     @Mapping(source = "genres", target = "genres")
-
     MovieGetDTO convertMovieGetDTOtoEntity(Movie movie);
 }
