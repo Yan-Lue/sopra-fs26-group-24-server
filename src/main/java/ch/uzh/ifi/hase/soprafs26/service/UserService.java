@@ -119,6 +119,11 @@ public class UserService {
         }
 	}
 
+	public User getUserById(Long userid) {
+		User user = userRepository.findById(userid).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with userid " + userid + " not found"));
+		return user;
+	}
+
 	public String generateGuestUsername() {
 		// Generates a short random string from the first 5 characters of a UUID
 		String randomSuffix = UUID.randomUUID().toString().substring(0, 5);

@@ -199,6 +199,40 @@ class UserControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+		// GET Mapping /users/{id} successful 200
+	@Test
+	public void givenUserId_whenGetUserById_thenReturnJson() throws Exception {
+		User user = new User();
+		user.setId(1L); // mock user with id 1
+		user.setName("Test User");
+		user.setUsername("testUsername");
+		user.setToken("1");
+		user.setStatus(UserStatus.OFFLINE);
+
+		given(userService.getUserById(1L)).willReturn(user);
+
+		MockHttpServletRequestBuilder getRequest = get("/users/1").contentType(MediaType.APPLICATION_JSON);
+
+		mockMvc.perform(getRequest)
+				.andExpect(status().isOk()) // 200
+				.andExpect(jsonPath("$.id", is(user.getId().intValue())))
+				.andExpect(jsonPath("$.name", is(user.getName())))
+				.andExpect(jsonPath("$.username", is(user.getUsername())))
+				.andExpect(jsonPath("$.status", is(user.getStatus().toString())));
+	}
+
+	// GET Mapping /users/{id} with wrong id 404
+	@Test 
+	public void givenUserId_invalidUserId_whenGetUserById_thenReturnIdNotFound() throws Exception {
+		// no user needed as error will be thrown anyway
+		given(userService.getUserById(444L)).willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "user with userId 444 was not found"));
+
+		MockHttpServletRequestBuilder getRequest = get("/users/444").contentType(MediaType.APPLICATION_JSON);
+
+		mockMvc.perform(getRequest)
+				.andExpect(status().isNotFound());
+	}
+
 	/**
 	 * Helper Method to convert userPostDTO into a JSON string such that the input
 	 * can be processed
