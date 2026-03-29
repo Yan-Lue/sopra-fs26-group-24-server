@@ -177,4 +177,33 @@ class UserServiceIntegrationTest {
 		assertNotNull(loggedInUser.getToken());
 		assertNotEquals(tokenBeforeLogin, loggedInUser.getToken());
 	}
+
+	@Test
+	void getUserById_existingId_success() {
+		User user = new User();
+		user.setName("testName");
+		user.setUsername("testUsername");
+		user.setPassword("testPassword");
+		user.setBio("testBio");
+		user.setEmail("test@test.com");
+
+		User createdUser = userService.createUser(user);
+
+		User foundUser = userService.getUserById(createdUser.getId());
+
+		assertNotNull(foundUser);
+		assertEquals(createdUser.getId(), foundUser.getId());
+		assertEquals("testUsername", foundUser.getUsername());
+	}
+
+	@Test
+	void getUserById_nonExistingId_throwsNotFound() {
+		ResponseStatusException exception = assertThrows(
+				ResponseStatusException.class,
+				() -> userService.getUserById(999L)
+		);
+
+		assertEquals(404, exception.getStatusCode().value());
+		assertTrue(exception.getReason().contains("User with userid 999 not found"));
+	}
 }
