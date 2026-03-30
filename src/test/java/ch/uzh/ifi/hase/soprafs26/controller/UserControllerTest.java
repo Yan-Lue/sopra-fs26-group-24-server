@@ -47,7 +47,7 @@ class UserControllerTest {
 	private UserService userService;
 
 	@Test
-    void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
+	void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
 		// given
 		User user = new User();
 		user.setName("Firstname Lastname");
@@ -80,7 +80,7 @@ class UserControllerTest {
 		user.setUsername("testUsername");
 		user.setToken("1");
 		user.setStatus(UserStatus.ONLINE);
-        user.setEmail("test@test.com");
+		user.setEmail("test@test.com");
 
 		UserPostDTO userPostDTO = new UserPostDTO();
 		userPostDTO.setName("Test User");
@@ -102,6 +102,7 @@ class UserControllerTest {
 				.andExpect(jsonPath("$.status", is(user.getStatus().toString())));
 	}
 
+	// POST Mapping /register for guest user successful 201
 	@Test
 	void createGuestUser_validInput_guestUserCreated() throws Exception {
 		GuestUser guestUser = new GuestUser();
@@ -150,7 +151,7 @@ class UserControllerTest {
 				.andExpect(jsonPath("$.username", is(user.getUsername())))
 				.andExpect(jsonPath("$.token", is(user.getToken())))
 				.andExpect(jsonPath("$.status", is(user.getStatus().toString())));
-		
+
 	}
 
 	// POST Mapping /login with wrong password 401
@@ -160,7 +161,8 @@ class UserControllerTest {
 		userPostDTO.setUsername("testUsername");
 		userPostDTO.setPassword("invalidPassword");
 
-		given(userService.loginUser("testUsername", "invalidPassword")).willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
+		given(userService.loginUser("testUsername", "invalidPassword"))
+				.willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
 
 		MockHttpServletRequestBuilder postRequest = post("/login")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -171,35 +173,35 @@ class UserControllerTest {
 
 	}
 
-    // POST Mapping /register with invalid email
-    @Test
-    void createUser_invalidEmail_throwsException() throws Exception {
-        User user = new User();
-        user.setId(1L);
-        user.setName("Test User");
-        user.setUsername("testUsername");
-        user.setToken("1");
-        user.setStatus(UserStatus.ONLINE);
-        user.setEmail("obvious invalid email");
+	// POST Mapping /register with invalid email
+	@Test
+	void createUser_invalidEmail_throwsException() throws Exception {
+		User user = new User();
+		user.setId(1L);
+		user.setName("Test User");
+		user.setUsername("testUsername");
+		user.setToken("1");
+		user.setStatus(UserStatus.ONLINE);
+		user.setEmail("obvious invalid email");
 
-        UserPostDTO userPostDTO = new UserPostDTO();
-        userPostDTO.setName("Test User");
-        userPostDTO.setUsername("testUsername");
-        userPostDTO.setEmail("obvious invalid email");
+		UserPostDTO userPostDTO = new UserPostDTO();
+		userPostDTO.setName("Test User");
+		userPostDTO.setUsername("testUsername");
+		userPostDTO.setEmail("obvious invalid email");
 
-        given(userService.createUser(Mockito.any())).willReturn(user);
+		given(userService.createUser(Mockito.any())).willReturn(user);
 
-        // when/then -> do the request + validate the result
-        MockHttpServletRequestBuilder postRequest = post("/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPostDTO));
+		// when/then -> do the request + validate the result
+		MockHttpServletRequestBuilder postRequest = post("/register")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(asJsonString(userPostDTO));
 
-        // then
-        mockMvc.perform(postRequest)
-                .andExpect(status().isBadRequest());
-    }
+		// then
+		mockMvc.perform(postRequest)
+				.andExpect(status().isBadRequest());
+	}
 
-		// GET Mapping /users/{id} successful 200
+	// GET Mapping /users/{id} successful 200
 	@Test
 	public void givenUserId_whenGetUserById_thenReturnJson() throws Exception {
 		User user = new User();
@@ -222,10 +224,11 @@ class UserControllerTest {
 	}
 
 	// GET Mapping /users/{id} with wrong id 404
-	@Test 
+	@Test
 	public void givenUserId_invalidUserId_whenGetUserById_thenReturnIdNotFound() throws Exception {
 		// no user needed as error will be thrown anyway
-		given(userService.getUserById(444L)).willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "user with userId 444 was not found"));
+		given(userService.getUserById(444L))
+				.willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "user with userId 444 was not found"));
 
 		MockHttpServletRequestBuilder getRequest = get("/users/444").contentType(MediaType.APPLICATION_JSON);
 
