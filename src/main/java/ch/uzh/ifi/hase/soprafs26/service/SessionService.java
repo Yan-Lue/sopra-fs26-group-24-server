@@ -33,11 +33,11 @@ public class SessionService {
 
         int roundLimit = newSession.getRoundLimit() == null ? DEFAULT_ROUND_LIMIT : newSession.getRoundLimit();
 
-        List<Long> sessionMovieIds = tmdbService.discoverMovieIds(roundLimit);
+         //List<Long> sessionMovieIds = tmdbService.discoverMovieIds(roundLimit);
 
         newSession.setRoundLimit(roundLimit);
         newSession.setCurrentMovieIndex(0);
-        newSession.setSessionMovieIds(sessionMovieIds);
+        //newSession.setSessionMovieIds(sessionMovieIds);
         newSession.setCreationDate(new java.util.Date());
         newSession.setSessionCode(UUID.randomUUID().toString().substring(0, 5));
         newSession.setStatus(SessionStatus.ONLINE);
@@ -59,17 +59,28 @@ public class SessionService {
         return session;
     }
 
+    public Session getSessionByCode(String sessionCode) {
+        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
+
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
+        }
+
+        return session;
+    }
+
     private void checkValidSessionCreation(Session newSession) {
         String sessionName = newSession.getSessionName();
         Integer maxPlayers = newSession.getMaxPlayers();
+        Long hostId = newSession.getHostId();
 
-        if (sessionName == null || maxPlayers == null) {
+        if (sessionName == null || maxPlayers == null || hostId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create Session");
         }
     }
 
-    public Movie getNextMovie(Long sessionId) {
-        Session session = sessionRepository.findSessionBysessionId(sessionId);
+    public Movie getNextMovie(String sessionCode) {
+        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
 
         if (session == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
