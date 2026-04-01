@@ -26,6 +26,7 @@ public class SessionPostDTO {
     public Integer getRoundLimit() {
         return roundLimit;
     }
+    
 
     public void setRoundLimit(Integer roundLimit) {
         this.roundLimit = roundLimit;

@@ -69,6 +69,7 @@ public class SessionService {
         return session;
     }
 
+    
     private void checkValidSessionCreation(Session newSession) {
         String sessionName = newSession.getSessionName();
         Integer maxPlayers = newSession.getMaxPlayers();

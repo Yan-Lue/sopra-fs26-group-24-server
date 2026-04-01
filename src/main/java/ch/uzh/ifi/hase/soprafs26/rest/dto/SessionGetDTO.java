@@ -26,6 +26,7 @@ public class SessionGetDTO {
         return sessionId;
     }
 
+    
     public void setSessionId(Long sessionId) {
         this.sessionId = sessionId;
     }
