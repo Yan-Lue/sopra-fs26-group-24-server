@@ -103,9 +103,13 @@ class SessionControllerTest {
     // Getting a session for joining successfully
     // GET /session/{sessionCode} 200
     @Test
-    void getSession_validSessionId_getSuccessful() throws Exception {
+    void getSession_validSessionCode_getSuccessful() throws Exception {
 
+<<<<<<< HEAD
         given(sessionService.getSessionById("test1234")).willReturn(testSession);
+=======
+        given(sessionService.getSessionByCode("test1234")).willReturn(testSession);
+>>>>>>> parent of caa0b57 (Revert "22-once the users have joined the host is able to press a button  start session  that starts the session #134")
 
         MockHttpServletRequestBuilder getRequest = get("/session/test1234").contentType(MediaType.APPLICATION_JSON);
 
@@ -116,15 +120,20 @@ class SessionControllerTest {
                 .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())));
     }
 
+    
     // Getting a session for joining not successfully
     // GET /session/{sessionCode} 404
     @Test
+<<<<<<< HEAD
     void getSession_invalidSessionId_thenReturnSessionNotFound() throws Exception {
+=======
+    public void getSession_invalidSessionCode_thenReturnSessionNotFound() throws Exception {
+>>>>>>> parent of caa0b57 (Revert "22-once the users have joined the host is able to press a button  start session  that starts the session #134")
         // no user needed as error will be thrown anyway
-        given(sessionService.getSessionById(444L))
+        given(sessionService.getSessionByCode("doesNotExist"))
                 .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found."));
 
-        MockHttpServletRequestBuilder getRequest = get("/session/444").contentType(MediaType.APPLICATION_JSON);
+        MockHttpServletRequestBuilder getRequest = get("/session/doesNotExist").contentType(MediaType.APPLICATION_JSON);
 
         mockMvc.perform(getRequest)
                 .andExpect(status().isNotFound());
