@@ -33,11 +33,11 @@ public class SessionService {
 
         int roundLimit = newSession.getRoundLimit() == null ? DEFAULT_ROUND_LIMIT : newSession.getRoundLimit();
 
-         //List<Long> sessionMovieIds = tmdbService.discoverMovieIds(roundLimit);
+        List<Long> sessionMovieIds = tmdbService.discoverMovieIds(roundLimit);
 
         newSession.setRoundLimit(roundLimit);
         newSession.setCurrentMovieIndex(0);
-        //newSession.setSessionMovieIds(sessionMovieIds);
+        newSession.setSessionMovieIds(sessionMovieIds);
         newSession.setCreationDate(new java.util.Date());
         newSession.setSessionCode(UUID.randomUUID().toString().substring(0, 5));
         newSession.setStatus(SessionStatus.ONLINE);

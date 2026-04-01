@@ -108,12 +108,12 @@ class SessionServiceTest {
                 List.of("Drama")
         );
 
-        Mockito.when(sessionRepository.findSessionBySessionId(1L)).thenReturn(storedSession);
+        Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
         Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         Mockito.when(tmdbService.getMovieDetails(55L)).thenReturn(movie);
 
-        Movie result = sessionService.getNextMovie(1L);
+        Movie result = sessionService.getNextMovie("1");
 
         assertEquals(movie, result);
         assertEquals(1, storedSession.getCurrentMovieIndex());
@@ -124,11 +124,11 @@ class SessionServiceTest {
 
     @Test
     void getNextMovie_unknownSession_throwsNotFound() {
-        Mockito.when(sessionRepository.findSessionBySessionId(999L)).thenReturn(null);
+        Mockito.when(sessionRepository.findSessionBySessionCode("999")).thenReturn(null);
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> sessionService.getNextMovie(999L)
+                () -> sessionService.getNextMovie("999")
         );
 
         assertEquals(404, exception.getStatusCode().value());
@@ -142,11 +142,11 @@ class SessionServiceTest {
         storedSession.setCurrentMovieIndex(0);
         storedSession.setSessionMovieIds(List.of());
 
-        Mockito.when(sessionRepository.findSessionBySessionId(1L)).thenReturn(storedSession);
+        Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> sessionService.getNextMovie(1L)
+                () -> sessionService.getNextMovie("1")
         );
 
         assertEquals(409, exception.getStatusCode().value());
