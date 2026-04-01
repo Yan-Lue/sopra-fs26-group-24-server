@@ -37,14 +37,13 @@ class SessionServiceTest {
         testSession.setSessionName("testSession");
         testSession.setMaxPlayers(5);
         testSession.setHostId(1L);
-
-        Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
     void createSession_withoutRoundLimit_aassignsDefaultsandMovieIds() {
         List<Long> movieIds = List.of(11L, 12L, 13L, 14L, 15L, 16L, 17L, 18L, 19L, 20L, 21L, 22L, 23L, 24L, 25L);
+        Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         Mockito.when(tmdbService.discoverMovieIds(15)).thenReturn(movieIds);
 
         Session createdSession = sessionService.createSession(testSession);
@@ -66,6 +65,8 @@ class SessionServiceTest {
     void createSession_withRoundLimit_usesProvidedLimit() {
         testSession.setRoundLimit(3);
         List<Long> movieIds = List.of(101L, 102L, 103L);
+        Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         Mockito.when(tmdbService.discoverMovieIds(3)).thenReturn(movieIds);
 
         Session createdSession = sessionService.createSession(testSession);
@@ -108,6 +109,8 @@ class SessionServiceTest {
         );
 
         Mockito.when(sessionRepository.findSessionBySessionId(1L)).thenReturn(storedSession);
+        Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         Mockito.when(tmdbService.getMovieDetails(55L)).thenReturn(movie);
 
         Movie result = sessionService.getNextMovie(1L);
