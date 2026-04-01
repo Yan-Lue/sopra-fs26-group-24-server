@@ -8,5 +8,6 @@ import org.springframework.stereotype.Repository;
 public interface GuestUserRepository extends JpaRepository<GuestUser, Long> {
 
     GuestUser findByToken(String token);
+    GuestUser findByUsername(String name);
 
 }

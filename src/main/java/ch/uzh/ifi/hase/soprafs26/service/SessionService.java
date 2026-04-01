@@ -50,7 +50,7 @@ public class SessionService {
     }
 
     public Session getSessionById(Long sessionId) {
-        Session session = sessionRepository.findSessionBysessionId(sessionId);
+        Session session = sessionRepository.findSessionBySessionId(sessionId);
 
         if (session == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
@@ -69,7 +69,7 @@ public class SessionService {
     }
 
     public Movie getNextMovie(Long sessionId) {
-        Session session = sessionRepository.findSessionBysessionId(sessionId);
+        Session session = sessionRepository.findSessionBySessionId(sessionId);
 
         if (session == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
@@ -80,6 +80,10 @@ public class SessionService {
 
         if (movieIds == null || movieIds.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Session has no movies assigned");
+        }
+
+        if (currentMovieIndex == null || currentMovieIndex < 0 || currentMovieIndex >= movieIds.size()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No more movies available in this session");
         }
 
         Long movieId = movieIds.get(currentMovieIndex);
