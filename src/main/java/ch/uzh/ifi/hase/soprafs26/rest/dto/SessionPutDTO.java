@@ -1,6 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto;
 
-public class SessionFilterPutDTO {
+public class SessionPutDTO {
 
     private Integer roundLimit;
 

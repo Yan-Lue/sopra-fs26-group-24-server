@@ -43,7 +43,20 @@ jobs:
 
       - name: Create app.yaml
         run: |
-            printf "runtime: java17\ninstance_class: F2\nenv_variables:\n  DB_HOST: ${{ secrets.DB_HOST }}\n  DB_PORT: ${{ secrets.DB_PORT }}\n  DB_NAME: ${{ secrets.DB_NAME }}\n  DB_USER: ${{ secrets.DB_USER }}\n  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}\n" > app.yaml
+            cat > app.yaml <<EOF
+            runtime: java17
+            instance_class: F2
+            env_variables:
+              DB_HOST: "${{ secrets.DB_HOST }}"
+              DB_PORT: "${{ secrets.DB_PORT }}"
+              DB_NAME: "${{ secrets.DB_NAME }}"
+              DB_USER: "${{ secrets.DB_USER }}"
+              DB_PASSWORD: "${{ secrets.DB_PASSWORD }}"
+              TMDB_API_KEY: "${{ secrets.TMDB_API_KEY }}"
+            EOF
+
+      - name: Show app.yaml
+        run: sed -n '1,50p' app.yaml
 
       - name: Deploy to App Engine
         id: deploy
