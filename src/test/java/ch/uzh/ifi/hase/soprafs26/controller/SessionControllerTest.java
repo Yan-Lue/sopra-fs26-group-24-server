@@ -114,6 +114,7 @@ public class SessionControllerTest {
                 .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken().toString())));
     }
 
+    
     // Getting a session for joining not successfully
     // GET /session/{sessionCode} 404
     @Test
