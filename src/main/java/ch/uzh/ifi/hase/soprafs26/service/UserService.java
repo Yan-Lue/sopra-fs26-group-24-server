@@ -16,8 +16,10 @@ import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * User Service
@@ -31,6 +33,13 @@ import java.util.UUID;
 public class UserService {
 
 	private final Logger log = LoggerFactory.getLogger(UserService.class);
+
+    private static final String GUEST_USERNAME_PREFIX = "guest_";
+    private static final List<String> GUEST_NAMES = Arrays.asList(
+            "otter", "panda", "falcon", "lynx", "badger", "koala", "tiger", "rabbit", "beaver", "fox", "walrus", "gecko",
+            "ferret", "owl", "bison", "lemur", "grootcod", "moose", "orca", "raven", "seal", "wombat", "zebra", "alpaca", "buffalo",
+            "cougar", "dolphin", "lion"
+    );
 
 	private final UserRepository userRepository;
 	private final GuestUserRepository guestUserRepository;
@@ -70,7 +79,7 @@ public class UserService {
 		String randomUsername = generateGuestUsername();
 
 		newGuestUser.setUsername(randomUsername);
-		newGuestUser.setToken("Guest-" + UUID.randomUUID().toString());
+		newGuestUser.setToken("Guest-" + UUID.randomUUID());
 		newGuestUser.setStatus(UserStatus.ONLINE);
 
 		newGuestUser = guestUserRepository.save(newGuestUser);
@@ -79,6 +88,34 @@ public class UserService {
 		log.debug("Created Information for Guest User: {}", newGuestUser);
 		return newGuestUser;
 	}
+
+    public String generateGuestUsername() {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            String genName = GUEST_NAMES.get(ThreadLocalRandom.current().nextInt(GUEST_NAMES.size()));
+            String username = GUEST_USERNAME_PREFIX + genName;
+
+            if (isGuestUsernameAvailable(username)) {
+                return username;
+            }
+        }
+
+        String fallbackUsername = GUEST_USERNAME_PREFIX
+                + GUEST_NAMES.get(ThreadLocalRandom.current().nextInt(GUEST_NAMES.size()))
+                + UUID.randomUUID().toString().substring(0, 4);
+
+        while (!isGuestUsernameAvailable(fallbackUsername)) {
+            fallbackUsername = GUEST_USERNAME_PREFIX
+                    + GUEST_NAMES.get(ThreadLocalRandom.current().nextInt(GUEST_NAMES.size()))
+                    + UUID.randomUUID().toString().substring(0, 4);
+        }
+
+        return fallbackUsername;
+    }
+
+    private boolean isGuestUsernameAvailable(String username) {
+        return userRepository.findByUsername(username) == null
+                && guestUserRepository.findByUsername(username) == null;
+    }
 
 	public User loginUser(String username, String password) {
 		User user = userRepository.findByUsername(username);
@@ -95,6 +132,8 @@ public class UserService {
 		log.debug("User logged in: {}", user);
 		return user;
 	}
+
+
 
 	/**
 	 * This is a helper method that will check the uniqueness criteria of the
@@ -120,13 +159,6 @@ public class UserService {
 	}
 
 	public User getUserById(Long userid) {
-		User user = userRepository.findById(userid).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with userid " + userid + " not found"));
-		return user;
-	}
-
-	public String generateGuestUsername() {
-		// Generates a short random string from the first 5 characters of a UUID
-		String randomSuffix = UUID.randomUUID().toString().substring(0, 5);
-		return "Guest-" + randomSuffix;
+		return userRepository.findById(userid).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with userid " + userid + " not found"));
 	}
 }

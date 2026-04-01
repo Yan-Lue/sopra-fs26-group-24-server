@@ -1,11 +1,15 @@
 package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.MovieGetDTO;
+import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import org.junit.jupiter.api.Test;
 
 import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -14,9 +18,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Tests if the mapping between the internal and the external/API representation
  * works.
  */
-public class DTOMapperTest {
+class DTOMapperTest {
 	@Test
-	public void testCreateUser_fromUserPostDTO_toUser_success() {
+    void testCreateUser_fromUserPostDTO_toUser_success() {
 		// create UserPostDTO
 		UserPostDTO userPostDTO = new UserPostDTO();
 		userPostDTO.setName("name");
@@ -31,7 +35,7 @@ public class DTOMapperTest {
 	}
 
 	@Test
-	public void testGetUser_fromUser_toUserGetDTO_success() {
+	void testGetUser_fromUser_toUserGetDTO_success() {
 		// create User
 		User user = new User();
 		user.setName("Firstname Lastname");
@@ -48,4 +52,27 @@ public class DTOMapperTest {
 		assertEquals(user.getUsername(), userGetDTO.getUsername());
 		assertEquals(user.getStatus(), userGetDTO.getStatus());
 	}
+
+    @Test
+    void testGetMovie_fromMovie_toMovieGetDTO_success() {
+        Movie movie = new Movie(
+                550L,
+                "Fight Club",
+                "Insomnia and soap.",
+                "https://image.tmdb.org/t/p/w500/fight-club.jpg",
+                8.4,
+                "1999-10-15",
+                List.of("Drama", "Thriller")
+        );
+
+        MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+
+        assertEquals(movie.getId(), movieGetDTO.getMovieId());
+        assertEquals(movie.getTitle(), movieGetDTO.getTitle());
+        assertEquals(movie.getOverview(), movieGetDTO.getDescription());
+        assertEquals(movie.getPosterPath(), movieGetDTO.getPosterPath());
+        assertEquals(movie.getRating(), movieGetDTO.getRating());
+        assertEquals(movie.getReleaseDate(), movieGetDTO.getReleaseDate());
+        assertEquals(movie.getGenres(), movieGetDTO.getGenres());
+    }
 }

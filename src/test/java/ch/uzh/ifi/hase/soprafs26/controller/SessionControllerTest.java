@@ -1,6 +1,5 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
-import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -9,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -28,8 +28,10 @@ import ch.uzh.ifi.hase.soprafs26.service.SessionService;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
+
 @WebMvcTest(SessionController.class)
-public class SessionControllerTest {
+class SessionControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -109,15 +111,15 @@ public class SessionControllerTest {
 
         mockMvc.perform(getRequest)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.sessionCode", is(testSession.getSessionCode().toString())))
+                .andExpect(jsonPath("$.sessionCode", is(testSession.getSessionCode())))
                 .andExpect(jsonPath("$.sessionId", is(testSession.getSessionId().intValue())))
-                .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken().toString())));
+                .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())));
     }
 
     // Getting a session for joining not successfully
     // GET /session/{sessionId} 404
     @Test
-    public void getSession_invalidSessionId_thenReturnSessionNotFound() throws Exception {
+    void getSession_invalidSessionId_thenReturnSessionNotFound() throws Exception {
         // no user needed as error will be thrown anyway
         given(sessionService.getSessionById(444L))
                 .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found."));
@@ -128,12 +130,55 @@ public class SessionControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+
+    @Test
+    void getNextMovie_validSessionId_returnsMovie() throws Exception {
+        Movie movie = new Movie(
+                550L,
+                "Fight Club",
+                "Insomnia and soap.",
+                "https://image.tmdb.org/t/p/w500/fight-club.jpg",
+                8.4,
+                "1999-10-15",
+                List.of("Drama", "Thriller")
+        );
+
+        given(sessionService.getNextMovie(1L)).willReturn(movie);
+
+        MockHttpServletRequestBuilder getRequest = get("/session/1/next")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.movieId", is(550)))
+                .andExpect(jsonPath("$.title", is("Fight Club")))
+                .andExpect(jsonPath("$.description", is("Insomnia and soap.")))
+                .andExpect(jsonPath("$.posterPath", is("https://image.tmdb.org/t/p/w500/fight-club.jpg")))
+                .andExpect(jsonPath("$.rating", is(8.4)))
+                .andExpect(jsonPath("$.releaseDate", is("1999-10-15")))
+                .andExpect(jsonPath("$.genres", hasSize(2)))
+                .andExpect(jsonPath("$.genres[0]", is("Drama")))
+                .andExpect(jsonPath("$.genres[1]", is("Thriller")));
+    }
+
+    @Test
+    void getNextMovie_invalidSessionId_returnsNotFound() throws Exception {
+        given(sessionService.getNextMovie(444L))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found."));
+
+        MockHttpServletRequestBuilder getRequest = get("/session/444/next")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isNotFound());
+    }
+
     private String asJsonString(final Object object) {
         try {
             return new ObjectMapper().writeValueAsString(object);
         } catch (JacksonException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    String.format("The request body could not be created.%s", e.toString()));
+                    String.format("The request body could not be created.%s", e));
         }
     }
 }
