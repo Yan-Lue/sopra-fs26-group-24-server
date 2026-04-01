@@ -101,11 +101,11 @@ class SessionControllerTest {
     }
 
     // Getting a session for joining successfully
-    // GET /session/{sessionId} 200
+    // GET /session/{sessionCode} 200
     @Test
-    void getSession_validSessionId_getSuccessful() throws Exception {
+    void getSession_validSessionCode_getSuccessful() throws Exception {
 
-        given(sessionService.getSessionById(1L)).willReturn(testSession);
+        given(sessionService.getSessionByCode("1")).willReturn(testSession);
 
         MockHttpServletRequestBuilder getRequest = get("/session/1").contentType(MediaType.APPLICATION_JSON);
 
@@ -116,15 +116,16 @@ class SessionControllerTest {
                 .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())));
     }
 
+    
     // Getting a session for joining not successfully
-    // GET /session/{sessionId} 404
+    // GET /session/{sessionCode} 404
     @Test
-    void getSession_invalidSessionId_thenReturnSessionNotFound() throws Exception {
+    void getSession_invalidSessionCode_thenReturnSessionNotFound() throws Exception {
         // no user needed as error will be thrown anyway
-        given(sessionService.getSessionById(444L))
+        given(sessionService.getSessionByCode("doesNotExist"))
                 .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found."));
 
-        MockHttpServletRequestBuilder getRequest = get("/session/444").contentType(MediaType.APPLICATION_JSON);
+        MockHttpServletRequestBuilder getRequest = get("/session/doesNotExist").contentType(MediaType.APPLICATION_JSON);
 
         mockMvc.perform(getRequest)
                 .andExpect(status().isNotFound());
@@ -132,7 +133,7 @@ class SessionControllerTest {
 
 
     @Test
-    void getNextMovie_validSessionId_returnsMovie() throws Exception {
+    void getNextMovie_validSessionCode_returnsMovie() throws Exception {
         Movie movie = new Movie(
                 550L,
                 "Fight Club",
@@ -143,7 +144,7 @@ class SessionControllerTest {
                 List.of("Drama", "Thriller")
         );
 
-        given(sessionService.getNextMovie(1L)).willReturn(movie);
+        given(sessionService.getNextMovie("1")).willReturn(movie);
 
         MockHttpServletRequestBuilder getRequest = get("/session/1/next")
                 .contentType(MediaType.APPLICATION_JSON);
@@ -162,8 +163,8 @@ class SessionControllerTest {
     }
 
     @Test
-    void getNextMovie_invalidSessionId_returnsNotFound() throws Exception {
-        given(sessionService.getNextMovie(444L))
+    void getNextMovie_invalidSessionCode_returnsNotFound() throws Exception {
+        given(sessionService.getNextMovie("444"))
                 .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found."));
 
         MockHttpServletRequestBuilder getRequest = get("/session/444/next")

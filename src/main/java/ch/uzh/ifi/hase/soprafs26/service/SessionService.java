@@ -59,17 +59,28 @@ public class SessionService {
         return session;
     }
 
+    public Session getSessionByCode(String sessionCode) {
+        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
+
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
+        }
+
+        return session;
+    }
+
     private void checkValidSessionCreation(Session newSession) {
         String sessionName = newSession.getSessionName();
         Integer maxPlayers = newSession.getMaxPlayers();
+        Long hostId = newSession.getHostId();
 
-        if (sessionName == null || maxPlayers == null) {
+        if (sessionName == null || maxPlayers == null || hostId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create Session");
         }
     }
 
-    public Movie getNextMovie(Long sessionId) {
-        Session session = sessionRepository.findSessionBySessionId(sessionId);
+    public Movie getNextMovie(String sessionCode) {
+        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
 
         if (session == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
