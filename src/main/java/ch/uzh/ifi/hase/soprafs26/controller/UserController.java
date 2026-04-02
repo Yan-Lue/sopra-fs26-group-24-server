@@ -95,7 +95,7 @@ public class UserController {
 	@PutMapping("/users/{userid}")
 	@ResponseStatus(HttpStatus.OK)
 	@ResponseBody
-	public UserGetDTO updateUser(@PathVariable Long userid, @RequestBody UserPutDTO userPutDTO) {
+	public UserGetDTO updateUser(@PathVariable Long userid, @Valid @RequestBody UserPutDTO userPutDTO) {
 		User userInput = DTOMapper.INSTANCE.convertUserPutDTOtoEntity(userPutDTO);
 
 		User updatedUser = userService.updateUser(userid, userInput, userPutDTO.getOldPassword(), userPutDTO.getNewPassword(), userPutDTO.getStatus());
@@ -104,7 +104,6 @@ public class UserController {
 
 	@DeleteMapping("/users/{userid}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@ResponseBody
 	public void deleteUser(@PathVariable Long userid) {
 		userService.deleteUser(userid);
 	}

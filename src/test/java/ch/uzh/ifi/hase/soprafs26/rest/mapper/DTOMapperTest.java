@@ -8,10 +8,13 @@ import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
+import ch.uzh.ifi.hase.soprafs26.service.UserService;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * DTOMapperTest
@@ -52,6 +55,27 @@ class DTOMapperTest {
 		assertEquals(user.getUsername(), userGetDTO.getUsername());
 		assertEquals(user.getStatus(), userGetDTO.getStatus());
 	}
+
+	@Test
+    void testUpdateUser_fromUserPutDTO_toUser_success() {
+        UserPutDTO userPutDTO = new UserPutDTO();
+        userPutDTO.setName("updatedName");
+        userPutDTO.setUsername("updatedUsername");
+        userPutDTO.setBio("updatedBio");
+        userPutDTO.setEmail("updated@test.com");
+        userPutDTO.setOldPassword("oldPassword");
+        userPutDTO.setNewPassword("newPassword");
+        userPutDTO.setStatus("ONLINE");
+
+        User user = DTOMapper.INSTANCE.convertUserPutDTOtoEntity(userPutDTO);
+
+        assertEquals(userPutDTO.getName(), user.getName());
+        assertEquals(userPutDTO.getUsername(), user.getUsername());
+        assertEquals(userPutDTO.getBio(), user.getBio());
+        assertEquals(userPutDTO.getEmail(), user.getEmail());
+        assertNull(user.getPassword());
+        assertNull(user.getStatus());
+    }
 
     @Test
     void testGetMovie_fromMovie_toMovieGetDTO_success() {
