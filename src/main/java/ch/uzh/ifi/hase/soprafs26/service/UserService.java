@@ -89,6 +89,78 @@ public class UserService {
 		return newGuestUser;
 	}
 
+	public void deleteUser(Long userid) {
+    if (userRepository.existsById(userid)) {
+        userRepository.deleteById(userid);
+        userRepository.flush();
+        log.debug("Deleted user with id: {}", userid);
+    }
+    else if (guestUserRepository.existsById(userid)) {
+        guestUserRepository.deleteById(userid);
+        guestUserRepository.flush();
+        log.debug("Deleted guest user with id: {}", userid);
+    }
+    else {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User with userid " + userid + " not found");
+    }
+}
+
+	public User updateUser(Long userid, User updatedUser, String oldPassword, String newPassword, String status) {
+		User existingUser = userRepository.findById(userid).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with userid " + userid + " not found"));
+
+		if (updatedUser.getName() != null) {
+			existingUser.setName(updatedUser.getName());
+		}
+
+		if (updatedUser.getUsername() != null) {
+			if (!existingUser.getUsername().equals(updatedUser.getUsername())) {
+				checkIfUserExists(updatedUser);
+				existingUser.setUsername(updatedUser.getUsername());
+			}
+		}
+
+		if (updatedUser.getBio() != null) {
+			existingUser.setBio(updatedUser.getBio());
+		}
+
+		if (oldPassword != null && newPassword != null && !oldPassword.trim().isEmpty() && !newPassword.trim().isEmpty()) {
+			if (!passwordEncoder.matches(oldPassword, existingUser.getPassword())) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Old password is incorrect");
+			} 
+			
+			if (passwordEncoder.matches(newPassword, existingUser.getPassword())) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password must be different from the old password");
+			}
+
+			String hashedNewPassword = passwordEncoder.encode(newPassword);
+			existingUser.setPassword(hashedNewPassword);
+		}
+
+		if (updatedUser.getEmail() != null) {
+			if (!existingUser.getEmail().equals(updatedUser.getEmail())) {
+				checkIfUserExists(updatedUser);
+				existingUser.setEmail(updatedUser.getEmail());
+			}
+		}
+
+		if (status != null && !status.trim().isEmpty()) {
+			try {
+				UserStatus newStatus = UserStatus.fromString(status);
+				existingUser.setStatus(newStatus);
+			} catch (IllegalArgumentException e) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status value: " + status);
+			}
+		}
+
+		if (existingUser.getStatus() == UserStatus.OFFLINE) {
+			existingUser.setToken(null);
+		}
+
+		userRepository.save(existingUser);
+		userRepository.flush();
+		return existingUser;
+	}
+
     public String generateGuestUsername() {
         for (int attempt = 0; attempt < 5; attempt++) {
             String genName = GUEST_NAMES.get(ThreadLocalRandom.current().nextInt(GUEST_NAMES.size()));

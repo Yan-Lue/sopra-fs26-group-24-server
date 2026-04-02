@@ -45,6 +45,14 @@ public interface DTOMapper {
 	@Mapping(source = "bio", target = "bio")
 	UserGetDTO convertEntityToUserGetDTO(User user);
 
+	@Mapping(source = "name", target = "name")
+	@Mapping(source = "username", target = "username")
+	@Mapping(source = "bio", target = "bio")
+	@Mapping(target = "password", ignore = true)
+	@Mapping(source = "email", target = "email")
+	@Mapping( target = "status", ignore = true)
+	User convertUserPutDTOtoEntity(UserPutDTO userPutDTO);
+
 	@Mapping(source = "sessionName", target = "sessionName")
 	@Mapping(source = "maxPlayers", target = "maxPlayers")
     @Mapping(source = "roundLimit", target = "roundLimit")

@@ -8,6 +8,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
 
@@ -90,4 +91,20 @@ public class UserController {
     public String testConnection() {
         return "Database is running!";
     }
+
+	@PutMapping("/users/{userid}")
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	public UserGetDTO updateUser(@PathVariable Long userid, @Valid @RequestBody UserPutDTO userPutDTO) {
+		User userInput = DTOMapper.INSTANCE.convertUserPutDTOtoEntity(userPutDTO);
+
+		User updatedUser = userService.updateUser(userid, userInput, userPutDTO.getOldPassword(), userPutDTO.getNewPassword(), userPutDTO.getStatus());
+		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(updatedUser);
+	}
+
+	@DeleteMapping("/users/{userid}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deleteUser(@PathVariable Long userid) {
+		userService.deleteUser(userid);
+	}
 }

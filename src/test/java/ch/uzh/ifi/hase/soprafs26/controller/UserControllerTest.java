@@ -8,6 +8,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -19,7 +20,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+
+import java.util.Optional;
 import java.util.Collections;
 import java.util.List;
 
@@ -28,6 +32,8 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -235,6 +241,84 @@ class UserControllerTest {
 		mockMvc.perform(getRequest)
 				.andExpect(status().isNotFound());
 	}
+
+	@Test
+    void updateUser_validInput_userUpdated() throws Exception {
+        User updatedUser = new User();
+        updatedUser.setId(1L);
+        updatedUser.setName("Updated Name");
+        updatedUser.setUsername("updatedUsername");
+        updatedUser.setBio("Updated bio");
+        updatedUser.setStatus(UserStatus.ONLINE);
+
+        UserPutDTO userPutDTO = new UserPutDTO();
+        userPutDTO.setName("Updated Name");
+        userPutDTO.setUsername("updatedUsername");
+        userPutDTO.setBio("Updated bio");
+        userPutDTO.setEmail("updated@test.com");
+        userPutDTO.setOldPassword("oldPassword");
+        userPutDTO.setNewPassword("newPassword");
+        userPutDTO.setStatus("ONLINE");
+
+        given(userService.updateUser(
+                Mockito.eq(1L),
+                Mockito.any(User.class),
+                Mockito.eq("oldPassword"),
+                Mockito.eq("newPassword"),
+                Mockito.eq("ONLINE")
+        )).willReturn(updatedUser);
+
+        MockHttpServletRequestBuilder putRequest = put("/users/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPutDTO));
+
+        mockMvc.perform(putRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.name", is("Updated Name")))
+                .andExpect(jsonPath("$.username", is("updatedUsername")))
+                .andExpect(jsonPath("$.bio", is("Updated bio")))
+                .andExpect(jsonPath("$.status", is("ONLINE")));
+    }
+
+    @Test
+    void updateUser_invalidEmail_returnsBadRequest() throws Exception {
+        UserPutDTO userPutDTO = new UserPutDTO();
+        userPutDTO.setName("Updated Name");
+        userPutDTO.setUsername("updatedUsername");
+        userPutDTO.setEmail("invalid-email");
+        userPutDTO.setStatus("ONLINE");
+
+        MockHttpServletRequestBuilder putRequest = put("/users/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPutDTO));
+
+        mockMvc.perform(putRequest)
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deleteUser_validId_noContent() throws Exception {
+        MockHttpServletRequestBuilder deleteRequest = delete("/users/1")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(deleteRequest)
+                .andExpect(status().isNoContent());
+
+        Mockito.verify(userService, Mockito.times(1)).deleteUser(1L);
+    }
+
+    @Test
+    void deleteUser_invalidId_notFound() throws Exception {
+        Mockito.doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User with userid 999 not found"))
+                .when(userService).deleteUser(999L);
+
+        MockHttpServletRequestBuilder deleteRequest = delete("/users/999")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(deleteRequest)
+                .andExpect(status().isNotFound());
+    }
 
 	/**
 	 * Helper Method to convert userPostDTO into a JSON string such that the input
