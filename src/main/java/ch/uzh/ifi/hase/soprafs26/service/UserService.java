@@ -89,6 +89,22 @@ public class UserService {
 		return newGuestUser;
 	}
 
+	public void deleteUser(Long userid) {
+    if (userRepository.existsById(userid)) {
+        userRepository.deleteById(userid);
+        userRepository.flush();
+        log.debug("Deleted user with id: {}", userid);
+    }
+    else if (guestUserRepository.existsById(userid)) {
+        guestUserRepository.deleteById(userid);
+        guestUserRepository.flush();
+        log.debug("Deleted guest user with id: {}", userid);
+    }
+    else {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User with userid " + userid + " not found");
+    }
+}
+
 	public User updateUser(Long userid, User updatedUser, String oldPassword, String newPassword, String status) {
 		User existingUser = userRepository.findById(userid).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with userid " + userid + " not found"));
 

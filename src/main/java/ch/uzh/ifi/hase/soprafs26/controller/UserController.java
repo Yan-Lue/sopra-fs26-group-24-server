@@ -101,4 +101,11 @@ public class UserController {
 		User updatedUser = userService.updateUser(userid, userInput, userPutDTO.getOldPassword(), userPutDTO.getNewPassword(), userPutDTO.getStatus());
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(updatedUser);
 	}
+
+	@DeleteMapping("/users/{userid}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@ResponseBody
+	public void deleteUser(@PathVariable Long userid) {
+		userService.deleteUser(userid);
+	}
 }
