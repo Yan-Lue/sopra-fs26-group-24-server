@@ -6,6 +6,7 @@ public class SessionPostDTO {
     private Integer maxPlayers;
     private Integer roundLimit;
     private Long hostId;
+    private String token;
 
     public String getSessionName() {
         return sessionName;
@@ -37,5 +38,13 @@ public class SessionPostDTO {
 
     public void setHostId(Long hostId) {
         this.hostId = hostId;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 }

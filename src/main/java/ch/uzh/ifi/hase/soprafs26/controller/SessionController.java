@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.SessionService;
 
@@ -27,15 +28,17 @@ public class SessionController {
 
         Session newSession = DTOMapper.INSTANCE.convertSessionPostDTOtoEntity(sessionPostDTO);
 
-        Session createdSession = sessionService.createSession(newSession);
+        Session createdSession = sessionService.createSession(newSession, sessionPostDTO.getToken());
 
         return DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(createdSession);
     }
 
-    @GetMapping("/session/{sessionCode}")
+    @PutMapping("/session/{sessionCode}")
     @ResponseStatus(HttpStatus.OK)
-    public SessionGetDTO getSession(@PathVariable String sessionCode) {
-        Session session = sessionService.getSessionByCode(sessionCode);
+    public SessionGetDTO joinSession(@PathVariable String sessionCode, @RequestBody SessionPutDTO sessionPutDTO) {
+
+        Session session = sessionService.joinSession(sessionCode, sessionPutDTO);
+
         return DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(session);
     }
 

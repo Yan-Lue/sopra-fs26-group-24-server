@@ -51,6 +51,10 @@ public class User implements Serializable {
 	@Column(nullable = false, unique = true)
 	private String email;
 
+	@ManyToOne
+	@JoinColumn(name = "current_session_id", nullable = true)
+	private Session currentSession;
+
 	public Long getId() {
 		return id;
 	}
@@ -113,5 +117,13 @@ public class User implements Serializable {
 
 	public void setEmail(String email) {
 		this.email = email;
+	}
+
+	public Session getCurrentSession() {
+		return currentSession;
+	}
+
+	public void setCurrentSession(Session currentSession) {
+		this.currentSession = currentSession;
 	}
 }

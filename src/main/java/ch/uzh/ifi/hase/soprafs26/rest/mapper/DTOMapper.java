@@ -20,7 +20,7 @@ import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
  * Always created one mapper for getting information (GET) and one mapper for
  * creating information (POST).
  */
-@Mapper
+@Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface DTOMapper {
 
 	DTOMapper INSTANCE = Mappers.getMapper(DTOMapper.class);
@@ -50,27 +50,27 @@ public interface DTOMapper {
 	@Mapping(source = "bio", target = "bio")
 	@Mapping(target = "password", ignore = true)
 	@Mapping(source = "email", target = "email")
-	@Mapping( target = "status", ignore = true)
+	@Mapping(target = "status", ignore = true)
 	User convertUserPutDTOtoEntity(UserPutDTO userPutDTO);
 
 	@Mapping(source = "sessionName", target = "sessionName")
 	@Mapping(source = "maxPlayers", target = "maxPlayers")
-    @Mapping(source = "roundLimit", target = "roundLimit")
+	@Mapping(source = "roundLimit", target = "roundLimit")
 	@Mapping(source = "hostId", target = "hostId")
 	Session convertSessionPostDTOtoEntity(SessionPostDTO sessionPostDTO);
 
 	@Mapping(source = "sessionCode", target = "sessionCode")
 	@Mapping(source = "sessionToken", target = "sessionToken")
-    @Mapping(source = "sessionId", target = "sessionId")
+	@Mapping(source = "sessionId", target = "sessionId")
 	@Mapping(source = "hostId", target = "hostId")
 	SessionGetDTO convertEntitytoSessionGetDTO(Session createdSession);
 
-    @Mapping(source = "id", target = "movieId")
-    @Mapping(source = "title", target = "title")
-    @Mapping(source = "overview", target = "description")
-    @Mapping(source = "posterPath", target = "posterPath")
-    @Mapping(source = "rating", target = "rating")
-    @Mapping(source = "releaseDate", target = "releaseDate")
-    @Mapping(source = "genres", target = "genres")
-    MovieGetDTO convertMovieGetDTOtoEntity(Movie movie);
+	@Mapping(source = "id", target = "movieId")
+	@Mapping(source = "title", target = "title")
+	@Mapping(source = "overview", target = "description")
+	@Mapping(source = "posterPath", target = "posterPath")
+	@Mapping(source = "rating", target = "rating")
+	@Mapping(source = "releaseDate", target = "releaseDate")
+	@Mapping(source = "genres", target = "genres")
+	MovieGetDTO convertMovieGetDTOtoEntity(Movie movie);
 }

@@ -1,8 +1,12 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.constant.SessionStatus;
+import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
+import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.SessionRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +28,12 @@ class SessionServiceTest {
     private SessionRepository sessionRepository;
 
     @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private GuestUserRepository guestUserRepository;
+
+    @Mock
     private TmdbService tmdbService;
 
     @InjectMocks
@@ -31,12 +41,25 @@ class SessionServiceTest {
 
     private Session testSession;
 
+    private String token;
+
+    private User testUser;
+    private GuestUser testGuest;
+
     @BeforeEach
     void setup() {
         testSession = new Session();
         testSession.setSessionName("testSession");
         testSession.setMaxPlayers(5);
         testSession.setHostId(1L);
+
+        testUser = new User();
+        testUser.setId(1L);
+
+        testGuest = new GuestUser();
+        testGuest.setId(1L);
+
+        token = "randomToken";
     }
 
     @Test
@@ -46,7 +69,9 @@ class SessionServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         Mockito.when(tmdbService.discoverMovieIds(15)).thenReturn(movieIds);
 
-        Session createdSession = sessionService.createSession(testSession);
+        Mockito.when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(testUser));
+
+        Session createdSession = sessionService.createSession(testSession, token);
 
         Mockito.verify(tmdbService, Mockito.times(1)).discoverMovieIds(15);
         Mockito.verify(sessionRepository, Mockito.times(1)).save(testSession);
@@ -69,7 +94,9 @@ class SessionServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         Mockito.when(tmdbService.discoverMovieIds(3)).thenReturn(movieIds);
 
-        Session createdSession = sessionService.createSession(testSession);
+        Mockito.when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(testUser));
+
+        Session createdSession = sessionService.createSession(testSession, token);
 
         Mockito.verify(tmdbService, Mockito.times(1)).discoverMovieIds(3);
         assertEquals(3, createdSession.getRoundLimit());
@@ -83,8 +110,7 @@ class SessionServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> sessionService.createSession(invalidSession)
-        );
+                () -> sessionService.createSession(invalidSession, token));
 
         assertEquals(400, exception.getStatusCode().value());
         assertEquals("Failed to create Session", exception.getReason());
@@ -105,8 +131,7 @@ class SessionServiceTest {
                 "/poster.jpg",
                 8.8,
                 "1999-10-15",
-                List.of("Drama")
-        );
+                List.of("Drama"));
 
         Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
         Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
@@ -128,8 +153,7 @@ class SessionServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> sessionService.getNextMovie("999")
-        );
+                () -> sessionService.getNextMovie("999"));
 
         assertEquals(404, exception.getStatusCode().value());
         assertEquals("Session could not be found.", exception.getReason());
@@ -146,8 +170,7 @@ class SessionServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> sessionService.getNextMovie("1")
-        );
+                () -> sessionService.getNextMovie("1"));
 
         assertEquals(409, exception.getStatusCode().value());
         assertEquals("Session has no movies assigned", exception.getReason());
