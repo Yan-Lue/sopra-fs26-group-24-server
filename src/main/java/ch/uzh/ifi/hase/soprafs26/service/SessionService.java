@@ -6,11 +6,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs26.constant.SessionStatus;
+import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
+import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.SessionRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -21,13 +28,18 @@ public class SessionService {
 
     private final SessionRepository sessionRepository;
     private final TmdbService tmdbService;
+    private final GuestUserRepository guestUserRepository;
+    private final UserRepository userRepository;
 
-    public SessionService(SessionRepository sessionRepository, TmdbService tmdbService) {
+    public SessionService(SessionRepository sessionRepository, TmdbService tmdbService,
+            GuestUserRepository guestUserRepository, UserRepository userRepository) {
         this.sessionRepository = sessionRepository;
         this.tmdbService = tmdbService;
+        this.guestUserRepository = guestUserRepository;
+        this.userRepository = userRepository;
     }
 
-    public Session createSession(Session newSession) {
+    public Session createSession(Session newSession, String userToken) {
 
         checkValidSessionCreation(newSession);
 
@@ -45,6 +57,26 @@ public class SessionService {
 
         newSession = sessionRepository.save(newSession);
         sessionRepository.flush();
+        // the host user most also have the session linked in the profile
+        Long id = newSession.getHostId();
+
+        if (userToken != null && userToken.startsWith("Guest")) {
+            GuestUser guestUser = guestUserRepository.findById(id)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "Guest user with ID " + id + " not found in the database"));
+            guestUser.setCurrentSession(newSession);
+            guestUserRepository.save(guestUser);
+            guestUserRepository.flush();
+        } else {
+            User user = userRepository.findById(id)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "User with ID " + id + " not found in the database"));
+
+            user.setCurrentSession(newSession);
+            userRepository.save(user);
+            userRepository.flush();
+
+        }
 
         return newSession;
     }
@@ -64,6 +96,31 @@ public class SessionService {
 
         if (session == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
+        }
+
+        return session;
+    }
+
+    public Session joinSession(String sessionCode, SessionPutDTO sessionPutDTO) {
+        Session session = getSessionByCode(sessionCode);
+
+        // this should now link the session to the user
+        if (sessionPutDTO.getToken().startsWith("Guest")) {
+            GuestUser guestUser = guestUserRepository.findByToken(sessionPutDTO.getToken());
+            if (guestUser == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest user not found");
+            }
+            guestUser.setCurrentSession(session);
+            guestUser = guestUserRepository.save(guestUser);
+            guestUserRepository.flush();
+        } else {
+            User user = userRepository.findByToken(sessionPutDTO.getToken());
+            if (user == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+            }
+            user.setCurrentSession(session);
+            user = userRepository.save(user);
+            userRepository.flush();
         }
 
         return session;

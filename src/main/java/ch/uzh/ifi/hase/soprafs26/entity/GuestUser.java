@@ -25,6 +25,10 @@ public class GuestUser implements Serializable {
     @Column(nullable = false, unique = true)
     private String token;
 
+    @ManyToOne
+    @JoinColumn(name = "current_session_id", nullable = true)
+    private Session currentSession;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus status;
@@ -59,5 +63,13 @@ public class GuestUser implements Serializable {
 
     public void setStatus(UserStatus status) {
         this.status = status;
+    }
+
+    public Session getCurrentSession() {
+        return currentSession;
+    }
+
+    public void setCurrentSession(Session currentSession) {
+        this.currentSession = currentSession;
     }
 }
