@@ -10,6 +10,7 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.SessionService;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
 
 import org.springframework.http.HttpStatus;
 
@@ -48,5 +49,13 @@ public class SessionController {
         Movie movie = sessionService.getNextMovie(sessionCode);
 
         return DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+    }
+
+    @PutMapping("/session/{sessionCode}/filters")
+    @ResponseStatus(HttpStatus.OK)
+    public SessionGetDTO updateSessionFilters(@PathVariable String sessionCode,
+                                              @RequestBody SessionFilterPutDTO sessionFilterPutDTO) {
+        Session updatedSession = sessionService.updateSessionFilters(sessionCode, sessionFilterPutDTO);
+        return DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(updatedSession);
     }
 }
