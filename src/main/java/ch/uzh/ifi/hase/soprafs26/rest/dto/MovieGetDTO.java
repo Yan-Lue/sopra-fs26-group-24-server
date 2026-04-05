@@ -10,6 +10,7 @@ public class MovieGetDTO {
     private Double rating;
     private String releaseDate;
     private List<String> genres;
+    private List<SimilarMovieGetDTO> similarMovies;
 
     public Long getMovieId() {
         return movieId;
@@ -64,5 +65,13 @@ public class MovieGetDTO {
 
     public void setGenres(List<String> genres) {
         this.genres = genres;
+    }
+
+    public List<SimilarMovieGetDTO> getSimilarMovies() {
+        return similarMovies;
+    }
+
+    public void setSimilarMovies(List<SimilarMovieGetDTO> similarMovies) {
+        this.similarMovies = similarMovies;
     }
 }

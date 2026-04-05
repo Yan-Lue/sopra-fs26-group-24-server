@@ -8,6 +8,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
+import ch.uzh.ifi.hase.soprafs26.service.model.SimilarMovie;
 
 /**
  * DTOMapper
@@ -72,5 +73,9 @@ public interface DTOMapper {
 	@Mapping(source = "rating", target = "rating")
 	@Mapping(source = "releaseDate", target = "releaseDate")
 	@Mapping(source = "genres", target = "genres")
+    @Mapping(source = "similarMovies", target = "similarMovies")
 	MovieGetDTO convertMovieGetDTOtoEntity(Movie movie);
+
+    @Mapping(source = "id", target = "movieId")
+    SimilarMovieGetDTO convertSimilarMovieToDTO(SimilarMovie similarMovie);
 }

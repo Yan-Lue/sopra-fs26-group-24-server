@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
+import ch.uzh.ifi.hase.soprafs26.service.model.MovieFilters;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
@@ -11,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
@@ -24,9 +26,12 @@ class TmdbServiceTest {
     private TmdbService tmdbService;
     private final AtomicInteger discoverCalls = new AtomicInteger();
     private final AtomicInteger movieCalls = new AtomicInteger();
+    private final AtomicInteger similarMovieCalls = new AtomicInteger();
 
     private String discoverResponse = "{\"results\":[]}";
     private String movieResponse = "null";
+    private String similarMovieResponse = "{\"results\":[]}";
+    private URI lastDiscoverUri;
 
     @BeforeEach
     void setup() throws IOException {
@@ -34,10 +39,17 @@ class TmdbServiceTest {
 
         server.createContext("/discover/movie", exchange -> {
             discoverCalls.incrementAndGet();
+            lastDiscoverUri = exchange.getRequestURI();
             sendJson(exchange, discoverResponse);
         });
 
         server.createContext("/movie", exchange -> {
+            if (exchange.getRequestURI().getPath().endsWith("/similar")) {
+                similarMovieCalls.incrementAndGet();
+                sendJson(exchange, similarMovieResponse);
+                return;
+            }
+
             movieCalls.incrementAndGet();
             sendJson(exchange, movieResponse);
         });
@@ -66,7 +78,7 @@ class TmdbServiceTest {
                 }
                 """;
 
-        List<Long> ids = tmdbService.discoverMovieIds(2);
+        List<Long> ids = tmdbService.discoverMovieIds(2, null);
 
         assertEquals(2, ids.size());
         assertEquals(2, ids.stream().distinct().count());
@@ -84,7 +96,7 @@ class TmdbServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> tmdbService.discoverMovieIds(1)
+                () -> tmdbService.discoverMovieIds(1, null)
         );
 
         assertEquals(502, exception.getStatusCode().value());
@@ -104,7 +116,7 @@ class TmdbServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> tmdbService.discoverMovieIds(2)
+                () -> tmdbService.discoverMovieIds(2, null)
         );
 
         assertEquals(502, exception.getStatusCode().value());
@@ -127,6 +139,19 @@ class TmdbServiceTest {
                   ]
                 }
                 """;
+        similarMovieResponse = """
+                {
+                  "results": [
+                    {
+                      "id": 551,
+                      "title": "Se7en",
+                      "poster_path": "/se7en.jpg",
+                      "vote_average": 8.3,
+                      "release_date": "1995-09-22"
+                    }
+                  ]
+                }
+                """;
 
         Movie first = tmdbService.getMovieDetails(550L);
         Movie second = tmdbService.getMovieDetails(550L);
@@ -138,9 +163,16 @@ class TmdbServiceTest {
         assertEquals(8.4, first.getRating());
         assertEquals("1999-10-15", first.getReleaseDate());
         assertEquals(List.of("Drama", "Thriller"), first.getGenres());
+        assertEquals(1, first.getSimilarMovies().size());
+        assertEquals(551L, first.getSimilarMovies().get(0).getId());
+        assertEquals("Se7en", first.getSimilarMovies().get(0).getTitle());
+        assertEquals("https://image.tmdb.org/t/p/w500/se7en.jpg", first.getSimilarMovies().get(0).getPosterPath());
+        assertEquals(8.3, first.getSimilarMovies().get(0).getRating());
+        assertEquals("1995-09-22", first.getSimilarMovies().get(0).getReleaseDate());
 
         assertEquals(first, second);
         assertEquals(1, movieCalls.get());
+        assertEquals(1, similarMovieCalls.get());
     }
 
     @Test
@@ -156,12 +188,14 @@ class TmdbServiceTest {
                   "genres": null
                 }
                 """;
+        similarMovieResponse = "null";
 
         Movie movie = tmdbService.getMovieDetails(42L);
 
         assertEquals(42L, movie.getId());
         assertNull(movie.getPosterPath());
         assertEquals(List.of(), movie.getGenres());
+        assertEquals(List.of(), movie.getSimilarMovies());
     }
 
     @Test
@@ -175,6 +209,28 @@ class TmdbServiceTest {
 
         assertEquals(502, exception.getStatusCode().value());
         assertEquals("TMDB movie details could not be loaded", exception.getReason());
+    }
+
+    @Test
+    void discoverMovieIds_withFilters_addsExpectedQueryParams() {
+        discoverResponse = """
+            {
+              "results": [
+                { "id": 1 },
+                { "id": 2 },
+                { "id": 3 }
+              ]
+            }
+            """;
+
+        MovieFilters filters = new MovieFilters(List.of(28L, 10749L), 7.5, 2024);
+
+        List<Long> ids = tmdbService.discoverMovieIds(2, filters);
+
+        assertEquals(2, ids.size());
+        assertTrue(lastDiscoverUri.getQuery().contains("with_genres=28|10749"));
+        assertTrue(lastDiscoverUri.getQuery().contains("vote_average.gte=7.5"));
+        assertTrue(lastDiscoverUri.getQuery().contains("primary_release_year=2024"));
     }
 
     private void sendJson(HttpExchange exchange, String body) throws IOException {

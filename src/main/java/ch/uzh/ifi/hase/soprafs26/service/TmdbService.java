@@ -1,6 +1,8 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
+import ch.uzh.ifi.hase.soprafs26.service.model.MovieFilters;
+import ch.uzh.ifi.hase.soprafs26.service.model.SimilarMovie;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -8,11 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Service
 public class TmdbService {
@@ -38,7 +38,7 @@ public class TmdbService {
         this.imageBaseUrl = imageBaseUrl;
     }
 
-    public List<Long> discoverMovieIds(int amount) {
+    public List<Long> discoverMovieIds(int amount, MovieFilters filters) {
 
         //restClient builds, sends and receives requests and responses from external sites like tmdb
         DiscoverResponse response = restClient.get()
@@ -48,7 +48,11 @@ public class TmdbService {
                         .queryParam("include_adult", false)
                         .queryParam("language", "en-US")
                         .queryParam("sort_by", "popularity.desc")
-                        .queryParam("vote_count.gte", 500)
+                        .queryParamIfPresent("with_genres", buildGenre(filters))
+                        .queryParamIfPresent("vote_average.gte",
+                                filters == null ? Optional.empty() : Optional.ofNullable(filters.minRating()))
+                        .queryParamIfPresent("primary_release_year",
+                                filters == null ? Optional.empty() : Optional.ofNullable(filters.releaseYear()))
                         .queryParam("page", 1)
                         .build())
                 .retrieve()
@@ -67,10 +71,22 @@ public class TmdbService {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Not enough movies returned by TMDB");
         }
 
-        List<Long> shuffeled = new ArrayList<>(ids);
-        Collections.shuffle(shuffeled);
+        List<Long> shuffled = new ArrayList<>(ids);
+        Collections.shuffle(shuffled);
 
-        return shuffeled.subList(0, amount);
+        return shuffled.subList(0, amount);
+    }
+
+    private Optional<String> buildGenre(MovieFilters filters) {
+        if (filters == null || filters.genreIds() == null || filters.genreIds().isEmpty()) {
+            return Optional.empty();
+        }
+
+        String genres = filters.genreIds().stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining("|"));
+
+        return Optional.of(genres);
     }
 
     public Movie getMovieDetails(Long movieId) {
@@ -94,6 +110,16 @@ public class TmdbService {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "TMDB movie details could not be loaded");
         }
 
+        SimilarMovieResponse similarMovieResponse = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/movie/{movieId}/similar")
+                        .queryParam("api_key", apiKey)
+                        .queryParam("language", "en-US")
+                        .queryParam("page", 1)
+                        .build(movieId))
+                .retrieve()
+                .body(SimilarMovieResponse.class);
+
         Movie movie = new Movie(
                 response.id(),
                 response.title(),
@@ -101,11 +127,28 @@ public class TmdbService {
                 response.posterPath() == null ? null : imageBaseUrl + response.posterPath(),
                 response.voteAverage(),
                 response.releaseDate(),
-                response.genres() == null ? List.of() : response.genres().stream().map(TmdbGenre::name).toList()
+                response.genres() == null ? List.of() : response.genres().stream().map(TmdbGenre::name).toList(),
+                mapSimilarMovies(similarMovieResponse)
         );
 
         movieCache.put(movieId, new CachedMovie(movie, now + CACHE_TTL_MILLIS));
         return movie;
+    }
+
+    private List<SimilarMovie> mapSimilarMovies(SimilarMovieResponse response) {
+        if (response == null || response.results() == null) {
+            return List.of();
+        }
+
+        return response.results().stream()
+                .map(result -> new SimilarMovie(
+                        result.id(),
+                        result.title(),
+                        result.posterPath() == null ? null : imageBaseUrl + result.posterPath(),
+                        result.voteAverage(),
+                        result.releaseDate()
+                ))
+                .toList();
     }
 
     private record CachedMovie(Movie movie, long expiresAt) {
@@ -129,5 +172,17 @@ public class TmdbService {
     }
 
     private record TmdbGenre(Long id, String name) {
+    }
+
+    private record SimilarMovieResponse(List<SimilarMovieResult> results) {
+    }
+
+    private record SimilarMovieResult(
+            Long id,
+            String title,
+            @JsonProperty("poster_path") String posterPath,
+            @JsonProperty("vote_average") Double voteAverage,
+            @JsonProperty("release_date") String releaseDate
+    ) {
     }
 }

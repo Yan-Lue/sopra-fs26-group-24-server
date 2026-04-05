@@ -13,7 +13,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
+import ch.uzh.ifi.hase.soprafs26.service.model.SimilarMovie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -159,7 +161,13 @@ class SessionControllerTest {
                                 "https://image.tmdb.org/t/p/w500/fight-club.jpg",
                                 8.4,
                                 "1999-10-15",
-                                List.of("Drama", "Thriller"));
+                                List.of("Drama", "Thriller"),
+                                List.of(new SimilarMovie(
+                                                551L,
+                                                "Se7en",
+                                                "https://image.tmdb.org/t/p/w500/se7en.jpg",
+                                                8.3,
+                                                "1995-09-22")));
 
                 given(sessionService.getNextMovie("1")).willReturn(movie);
 
@@ -177,7 +185,14 @@ class SessionControllerTest {
                                 .andExpect(jsonPath("$.releaseDate", is("1999-10-15")))
                                 .andExpect(jsonPath("$.genres", hasSize(2)))
                                 .andExpect(jsonPath("$.genres[0]", is("Drama")))
-                                .andExpect(jsonPath("$.genres[1]", is("Thriller")));
+                                .andExpect(jsonPath("$.genres[1]", is("Thriller")))
+                                .andExpect(jsonPath("$.similarMovies", hasSize(1)))
+                                .andExpect(jsonPath("$.similarMovies[0].movieId", is(551)))
+                                .andExpect(jsonPath("$.similarMovies[0].title", is("Se7en")))
+                                .andExpect(jsonPath("$.similarMovies[0].posterPath",
+                                                is("https://image.tmdb.org/t/p/w500/se7en.jpg")))
+                                .andExpect(jsonPath("$.similarMovies[0].rating", is(8.3)))
+                                .andExpect(jsonPath("$.similarMovies[0].releaseDate", is("1995-09-22")));
         }
 
         @Test
@@ -191,6 +206,45 @@ class SessionControllerTest {
 
                 mockMvc.perform(getRequest)
                                 .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void updateSessionFilters_validInput_returnsOk() throws Exception {
+            SessionFilterPutDTO dto = new SessionFilterPutDTO();
+            dto.setRoundLimit(10);
+            dto.setGenres(List.of("Action", "Romance"));
+            dto.setMinRating(7.5);
+            dto.setReleaseYear(2024);
+
+            given(sessionService.updateSessionFilters(eq("test1234"), any(SessionFilterPutDTO.class)))
+                    .willReturn(testSession);
+
+            MockHttpServletRequestBuilder putRequest = put("/session/test1234/filters")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(asJsonString(dto));
+
+            mockMvc.perform(putRequest)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.sessionCode", is(testSession.getSessionCode())))
+                    .andExpect(jsonPath("$.sessionId", is(1)))
+                    .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())));
+        }
+
+        @Test
+        void updateSessionFilters_unknownSession_returnsNotFound() throws Exception {
+            SessionFilterPutDTO dto = new SessionFilterPutDTO();
+            dto.setRoundLimit(10);
+            dto.setGenres(List.of("Action"));
+
+            given(sessionService.updateSessionFilters(eq("missing"), any(SessionFilterPutDTO.class)))
+                    .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found."));
+
+            MockHttpServletRequestBuilder putRequest = put("/session/missing/filters")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(asJsonString(dto));
+
+            mockMvc.perform(putRequest)
+                    .andExpect(status().isNotFound());
         }
 
         private String asJsonString(final Object object) {
