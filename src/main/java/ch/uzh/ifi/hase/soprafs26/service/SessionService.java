@@ -12,12 +12,12 @@ import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.SessionRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
+import ch.uzh.ifi.hase.soprafs26.service.model.MovieFilters;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -43,13 +43,9 @@ public class SessionService {
 
         checkValidSessionCreation(newSession);
 
-        int roundLimit = newSession.getRoundLimit() == null ? DEFAULT_ROUND_LIMIT : newSession.getRoundLimit();
-
-        List<Long> sessionMovieIds = tmdbService.discoverMovieIds(roundLimit);
-
-        newSession.setRoundLimit(roundLimit);
+        newSession.setRoundLimit(DEFAULT_ROUND_LIMIT);
         newSession.setCurrentMovieIndex(0);
-        newSession.setSessionMovieIds(sessionMovieIds);
+        newSession.setSessionMovieIds(List.of());
         newSession.setCreationDate(new java.util.Date());
         newSession.setSessionCode(UUID.randomUUID().toString().substring(0, 5));
         newSession.setStatus(SessionStatus.ONLINE);
@@ -111,7 +107,7 @@ public class SessionService {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest user not found");
             }
             guestUser.setCurrentSession(session);
-            guestUser = guestUserRepository.save(guestUser);
+            guestUserRepository.save(guestUser);
             guestUserRepository.flush();
         } else {
             User user = userRepository.findByToken(sessionPutDTO.getToken());
@@ -119,7 +115,7 @@ public class SessionService {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
             }
             user.setCurrentSession(session);
-            user = userRepository.save(user);
+            userRepository.save(user);
             userRepository.flush();
         }
 
@@ -162,5 +158,23 @@ public class SessionService {
         sessionRepository.flush();
 
         return movie;
+    }
+
+    public Session updateSessionFilters(String sessionCode, SessionFilterPutDTO dto) {
+        Session session = getSessionByCode(sessionCode);
+
+        int roundLimit = dto.getRoundLimit() == null ? DEFAULT_ROUND_LIMIT : dto.getRoundLimit();
+
+        MovieFilters filters = MovieFilters.fromDTO(dto);
+        List<Long> sessionMovieIds = tmdbService.discoverMovieIds(roundLimit, filters);
+
+        session.setRoundLimit(roundLimit);
+        session.setCurrentMovieIndex(0);
+        session.setSessionMovieIds(sessionMovieIds);
+
+        session = sessionRepository.save(session);
+        sessionRepository.flush();
+
+        return session;
     }
 }

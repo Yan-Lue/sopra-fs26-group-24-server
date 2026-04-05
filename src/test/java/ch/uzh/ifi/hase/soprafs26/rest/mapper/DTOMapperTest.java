@@ -1,7 +1,9 @@
 package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
 import ch.uzh.ifi.hase.soprafs26.rest.dto.MovieGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SimilarMovieGetDTO;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
+import ch.uzh.ifi.hase.soprafs26.service.model.SimilarMovie;
 import org.junit.jupiter.api.Test;
 
 import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
@@ -9,7 +11,6 @@ import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
-import ch.uzh.ifi.hase.soprafs26.service.UserService;
 
 import java.util.List;
 
@@ -86,7 +87,13 @@ class DTOMapperTest {
                 "https://image.tmdb.org/t/p/w500/fight-club.jpg",
                 8.4,
                 "1999-10-15",
-                List.of("Drama", "Thriller")
+                List.of("Drama", "Thriller"),
+                List.of(new SimilarMovie(
+                        551L,
+                        "Se7en",
+                        "https://image.tmdb.org/t/p/w500/se7en.jpg",
+                        8.3,
+                        "1995-09-22"))
         );
 
         MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
@@ -98,5 +105,12 @@ class DTOMapperTest {
         assertEquals(movie.getRating(), movieGetDTO.getRating());
         assertEquals(movie.getReleaseDate(), movieGetDTO.getReleaseDate());
         assertEquals(movie.getGenres(), movieGetDTO.getGenres());
+        assertEquals(1, movieGetDTO.getSimilarMovies().size());
+        SimilarMovieGetDTO similarMovieGetDTO = movieGetDTO.getSimilarMovies().get(0);
+        assertEquals(551L, similarMovieGetDTO.getMovieId());
+        assertEquals("Se7en", similarMovieGetDTO.getTitle());
+        assertEquals("https://image.tmdb.org/t/p/w500/se7en.jpg", similarMovieGetDTO.getPosterPath());
+        assertEquals(8.3, similarMovieGetDTO.getRating());
+        assertEquals("1995-09-22", similarMovieGetDTO.getReleaseDate());
     }
 }
