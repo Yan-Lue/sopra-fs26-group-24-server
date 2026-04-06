@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -9,15 +10,20 @@ import ch.uzh.ifi.hase.soprafs26.constant.SessionStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.entity.Vote;
 import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.SessionRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.VoteRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.VotePutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
 import ch.uzh.ifi.hase.soprafs26.service.model.MovieFilters;
 import jakarta.transaction.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -30,13 +36,18 @@ public class SessionService {
     private final TmdbService tmdbService;
     private final GuestUserRepository guestUserRepository;
     private final UserRepository userRepository;
+    private final VoteRepository voteRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public SessionService(SessionRepository sessionRepository, TmdbService tmdbService,
-            GuestUserRepository guestUserRepository, UserRepository userRepository) {
+            GuestUserRepository guestUserRepository, UserRepository userRepository, VoteRepository voteRepository,
+            SimpMessagingTemplate messagingTemplate) {
         this.sessionRepository = sessionRepository;
         this.tmdbService = tmdbService;
         this.guestUserRepository = guestUserRepository;
         this.userRepository = userRepository;
+        this.voteRepository = voteRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     public Session createSession(Session newSession, String userToken) {
@@ -125,6 +136,30 @@ public class SessionService {
             userRepository.flush();
         }
 
+        session.setJoinedUsers(session.getJoinedUsers() + 1);
+        sessionRepository.save(session);
+        sessionRepository.flush();
+
+        // I suggest that we do the regular PUT fetch to join and the join handling
+        // inside the database is done
+        // Then when the frontend receives the OK, it subscribes to the topic and waits
+        // for the next movie to be pushed, which happens in the line below when the
+        // host clicks "Start Session"
+
+        // The frontend needs to first connect to the websocket enpoint:
+        // ws://<our-server>/gs-guide-websocket
+        // Then it must subscribe to the topic: /topic/session/{sessionCode}/lobby and
+        // /topic/session/{sessionCode}/next to receive the current number of players
+        // who have joined and the movie details when the host
+        // starts the session and every time they click "Next"
+
+        Map<String, Object> lobbyUpdate = new HashMap<>();
+        lobbyUpdate.put("joinedUsers", session.getJoinedUsers());
+        lobbyUpdate.put("maxPlayers", session.getMaxPlayers());
+
+        // updated number of users who have already joined the session
+        messagingTemplate.convertAndSend((String) ("/topic/session/" + sessionCode + "/lobby"), (Object) lobbyUpdate);
+
         return session;
     }
 
@@ -163,6 +198,12 @@ public class SessionService {
         sessionRepository.save(session);
         sessionRepository.flush();
 
+        // This sends the movie object to everyone subscribed to that session's topic
+
+        // IMPORTANT: the frontend needs to subscribe to the topic
+        // "/topic/session/{sessionCode}/next" to receive the movie details when this
+        messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/next", movie);
+
         return movie;
     }
 
@@ -182,5 +223,60 @@ public class SessionService {
         sessionRepository.flush();
 
         return session;
+    }
+
+    public void setVote(VotePutDTO votePutDTO) {
+
+        // first we check if the session exists:
+        Session session = sessionRepository.findSessionBySessionCode(votePutDTO.getSessionCode());
+
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
+        }
+
+        // then lets check if the user is part of the session:
+        String userToken = votePutDTO.getToken();
+
+        if (userToken.startsWith("Guest")) {
+            GuestUser guestUser = guestUserRepository.findByToken(userToken);
+            if (guestUser == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest user not found");
+            }
+            if (guestUser.getCurrentSession() == null
+                    || !guestUser.getCurrentSession().getSessionCode().equals(votePutDTO.getSessionCode())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Guest user is not part of the session");
+            }
+        } else {
+            User user = userRepository.findByToken(userToken);
+            if (user == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+            }
+            if (user.getCurrentSession() == null
+                    || !user.getCurrentSession().getSessionCode().equals(votePutDTO.getSessionCode())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not part of the session");
+            }
+        }
+
+        // finally we also need to check if the user has already voted for the current
+        // movie, if yes we update the existing vote instead of creating a new one
+        Vote existingVote = voteRepository.findBySessionCodeAndUserIdAndMovieId(votePutDTO.getSessionCode(),
+                votePutDTO.getUserId(),
+                votePutDTO.getMovieId());
+        if (existingVote != null) {
+            existingVote.setScore(votePutDTO.getScore());
+            voteRepository.save(existingVote);
+            voteRepository.flush();
+        } else {
+            Vote vote = new Vote();
+            vote.setSessionCode(votePutDTO.getSessionCode());
+            vote.setUserId(votePutDTO.getUserId());
+            vote.setMovieId(votePutDTO.getMovieId());
+            vote.setScore(votePutDTO.getScore());
+            voteRepository.save(vote);
+            voteRepository.flush();
+        }
+
+        return;
+
     }
 }

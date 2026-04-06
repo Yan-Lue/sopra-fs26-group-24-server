@@ -7,6 +7,7 @@ import org.mapstruct.factory.Mappers;
 import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.entity.Vote;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import ch.uzh.ifi.hase.soprafs26.service.model.SimilarMovie;
 
@@ -73,9 +74,14 @@ public interface DTOMapper {
 	@Mapping(source = "rating", target = "rating")
 	@Mapping(source = "releaseDate", target = "releaseDate")
 	@Mapping(source = "genres", target = "genres")
-    @Mapping(source = "similarMovies", target = "similarMovies")
+	@Mapping(source = "similarMovies", target = "similarMovies")
 	MovieGetDTO convertMovieGetDTOtoEntity(Movie movie);
 
-    @Mapping(source = "id", target = "movieId")
-    SimilarMovieGetDTO convertSimilarMovieToDTO(SimilarMovie similarMovie);
+	@Mapping(source = "id", target = "movieId")
+	SimilarMovieGetDTO convertSimilarMovieToDTO(SimilarMovie similarMovie);
+
+	@Mapping(source = "userId", target = "userId")
+	@Mapping(source = "movieId", target = "movieId")
+	@Mapping(source = "score", target = "score")
+	Vote convertVotePutDTOtoEntity(VotePutDTO votePutDTO);
 }
