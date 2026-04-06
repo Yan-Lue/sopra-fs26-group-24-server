@@ -50,6 +50,7 @@ public class SessionService {
         newSession.setSessionCode(UUID.randomUUID().toString().substring(0, 5));
         newSession.setStatus(SessionStatus.ONLINE);
         newSession.setSessionToken(UUID.randomUUID().toString());
+        newSession.setJoinedUsers(1); // Initialize joined users to 1 since the host is joining
 
         newSession = sessionRepository.save(newSession);
         sessionRepository.flush();
@@ -99,6 +100,11 @@ public class SessionService {
 
     public Session joinSession(String sessionCode, SessionPutDTO sessionPutDTO) {
         Session session = getSessionByCode(sessionCode);
+
+        // first check if the session is already full
+        if (session.getJoinedUsers() >= session.getMaxPlayers()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session is already full");
+        }
 
         // this should now link the session to the user
         if (sessionPutDTO.getToken().startsWith("Guest")) {
