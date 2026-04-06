@@ -18,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -27,234 +28,237 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(MockitoExtension.class)
 class SessionServiceTest {
 
-    @Mock
-    private SessionRepository sessionRepository;
+        @Mock
+        private SessionRepository sessionRepository;
 
-    @Mock
-    private UserRepository userRepository;
+        @Mock
+        private UserRepository userRepository;
 
-    @Mock
-    private GuestUserRepository guestUserRepository;
+        @Mock
+        private GuestUserRepository guestUserRepository;
 
-    @Mock
-    private TmdbService tmdbService;
+        @Mock
+        private TmdbService tmdbService;
 
-    @InjectMocks
-    private SessionService sessionService;
+        @Mock
+        private SimpMessagingTemplate messagingTemplate;
 
-    private Session testSession;
+        @InjectMocks
+        private SessionService sessionService;
 
-    private String token;
+        private Session testSession;
 
-    private User testUser;
-    private GuestUser testGuest;
+        private String token;
 
-    @BeforeEach
-    void setup() {
-        testSession = new Session();
-        testSession.setSessionName("testSession");
-        testSession.setMaxPlayers(5);
-        testSession.setHostId(1L);
+        private User testUser;
+        private GuestUser testGuest;
 
-        testUser = new User();
-        testUser.setId(1L);
+        @BeforeEach
+        void setup() {
+                testSession = new Session();
+                testSession.setSessionName("testSession");
+                testSession.setMaxPlayers(5);
+                testSession.setHostId(1L);
 
-        testGuest = new GuestUser();
-        testGuest.setId(1L);
+                testUser = new User();
+                testUser.setId(1L);
 
-        token = "randomToken";
-    }
+                testGuest = new GuestUser();
+                testGuest.setId(1L);
 
-    @Test
-    void createSession_withoutRoundLimit_assignsDefaults() {
-        Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                token = "randomToken";
+        }
 
-        Mockito.when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(testUser));
+        @Test
+        void createSession_withoutRoundLimit_assignsDefaults() {
+                Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        Session createdSession = sessionService.createSession(testSession, token);
+                Mockito.when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(testUser));
 
-        Mockito.verifyNoInteractions(tmdbService);
-        Mockito.verify(sessionRepository).save(testSession);
-        Mockito.verify(sessionRepository).flush();
+                Session createdSession = sessionService.createSession(testSession, token);
 
-        assertEquals(15, createdSession.getRoundLimit());
-        assertEquals(0, createdSession.getCurrentMovieIndex());
-        assertEquals(List.of(), createdSession.getSessionMovieIds());
-        assertEquals(SessionStatus.ONLINE, createdSession.getStatus());
-        assertNotNull(createdSession.getCreationDate());
-        assertNotNull(createdSession.getSessionCode());
-        assertEquals(5, createdSession.getSessionCode().length());
-    }
+                Mockito.verifyNoInteractions(tmdbService);
+                Mockito.verify(sessionRepository).save(testSession);
+                Mockito.verify(sessionRepository).flush();
 
-    @Test
-    void createSession_missingRequiredFields_throwsBadRequest() {
-        Session invalidSession = new Session();
-        invalidSession.setHostId(1L);
+                assertEquals(15, createdSession.getRoundLimit());
+                assertEquals(0, createdSession.getCurrentMovieIndex());
+                assertEquals(List.of(), createdSession.getSessionMovieIds());
+                assertEquals(SessionStatus.ONLINE, createdSession.getStatus());
+                assertNotNull(createdSession.getCreationDate());
+                assertNotNull(createdSession.getSessionCode());
+                assertEquals(5, createdSession.getSessionCode().length());
+        }
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> sessionService.createSession(invalidSession, token));
+        @Test
+        void createSession_missingRequiredFields_throwsBadRequest() {
+                Session invalidSession = new Session();
+                invalidSession.setHostId(1L);
 
-        assertEquals(400, exception.getStatusCode().value());
-        assertEquals("Failed to create Session", exception.getReason());
-        Mockito.verifyNoInteractions(tmdbService);
-    }
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> sessionService.createSession(invalidSession, token));
 
-    @Test
-    void getNextMovie_validSession_returnsMovieAndAdvancesIndex() {
-        Session storedSession = new Session();
-        storedSession.setSessionId(1L);
-        storedSession.setCurrentMovieIndex(0);
-        storedSession.setSessionMovieIds(List.of(55L, 66L));
+                assertEquals(400, exception.getStatusCode().value());
+                assertEquals("Failed to create Session", exception.getReason());
+                Mockito.verifyNoInteractions(tmdbService);
+        }
 
-        Movie movie = new Movie(
-                55L,
-                "Fight Club",
-                "desc",
-                "/poster.jpg",
-                8.8,
-                "1999-10-15",
-                List.of("Drama"),
-                List.of(new SimilarMovie(66L, "Se7en", "/poster2.jpg", 8.3, "1995-09-22")));
+        @Test
+        void getNextMovie_validSession_returnsMovieAndAdvancesIndex() {
+                Session storedSession = new Session();
+                storedSession.setSessionId(1L);
+                storedSession.setCurrentMovieIndex(0);
+                storedSession.setSessionMovieIds(List.of(55L, 66L));
 
-        Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
-        Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        Mockito.when(tmdbService.getMovieDetails(55L)).thenReturn(movie);
+                Movie movie = new Movie(
+                                55L,
+                                "Fight Club",
+                                "desc",
+                                "/poster.jpg",
+                                8.8,
+                                "1999-10-15",
+                                List.of("Drama"),
+                                List.of(new SimilarMovie(66L, "Se7en", "/poster2.jpg", 8.3, "1995-09-22")));
 
-        Movie result = sessionService.getNextMovie("1");
+                Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
+                Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+                Mockito.when(tmdbService.getMovieDetails(55L)).thenReturn(movie);
+                Mockito.doNothing().when(messagingTemplate).convertAndSend(Mockito.anyString(), Mockito.<Object>any());
 
-        assertEquals(movie, result);
-        assertEquals(1, storedSession.getCurrentMovieIndex());
-        Mockito.verify(tmdbService, Mockito.times(1)).getMovieDetails(55L);
-        Mockito.verify(sessionRepository, Mockito.times(1)).save(storedSession);
-        Mockito.verify(sessionRepository, Mockito.times(1)).flush();
-    }
+                Movie result = sessionService.getNextMovie("1");
 
-    @Test
-    void getNextMovie_unknownSession_throwsNotFound() {
-        Mockito.when(sessionRepository.findSessionBySessionCode("999")).thenReturn(null);
+                assertEquals(movie, result);
+                assertEquals(1, storedSession.getCurrentMovieIndex());
+                Mockito.verify(tmdbService, Mockito.times(1)).getMovieDetails(55L);
+                Mockito.verify(sessionRepository, Mockito.times(1)).save(storedSession);
+                Mockito.verify(sessionRepository, Mockito.times(1)).flush();
+        }
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> sessionService.getNextMovie("999"));
+        @Test
+        void getNextMovie_unknownSession_throwsNotFound() {
+                Mockito.when(sessionRepository.findSessionBySessionCode("999")).thenReturn(null);
 
-        assertEquals(404, exception.getStatusCode().value());
-        assertEquals("Session could not be found.", exception.getReason());
-    }
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> sessionService.getNextMovie("999"));
 
-    @Test
-    void getNextMovie_withoutAssignedMovies_throwsConflict() {
-        Session storedSession = new Session();
-        storedSession.setSessionId(1L);
-        storedSession.setCurrentMovieIndex(0);
-        storedSession.setSessionMovieIds(List.of());
+                assertEquals(404, exception.getStatusCode().value());
+                assertEquals("Session could not be found.", exception.getReason());
+        }
 
-        Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
+        @Test
+        void getNextMovie_withoutAssignedMovies_throwsConflict() {
+                Session storedSession = new Session();
+                storedSession.setSessionId(1L);
+                storedSession.setCurrentMovieIndex(0);
+                storedSession.setSessionMovieIds(List.of());
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> sessionService.getNextMovie("1"));
+                Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
 
-        assertEquals(409, exception.getStatusCode().value());
-        assertEquals("Session has no movies assigned", exception.getReason());
-        Mockito.verifyNoInteractions(tmdbService);
-    }
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> sessionService.getNextMovie("1"));
 
-    @Test
-    void updateSessionFilters_validInput_fetchesMovieIdsAndStoresThem() {
-        Session storedSession = new Session();
-        storedSession.setSessionId(1L);
-        storedSession.setSessionCode("ABCDE");
-        storedSession.setCurrentMovieIndex(4);
+                assertEquals(409, exception.getStatusCode().value());
+                assertEquals("Session has no movies assigned", exception.getReason());
+                Mockito.verifyNoInteractions(tmdbService);
+        }
 
-        SessionFilterPutDTO dto = new SessionFilterPutDTO();
-        dto.setRoundLimit(3);
-        dto.setGenres(List.of("Action", "Romance"));
-        dto.setMinRating(7.5);
-        dto.setReleaseYear(2024);
+        @Test
+        void updateSessionFilters_validInput_fetchesMovieIdsAndStoresThem() {
+                Session storedSession = new Session();
+                storedSession.setSessionId(1L);
+                storedSession.setSessionCode("ABCDE");
+                storedSession.setCurrentMovieIndex(4);
 
-        List<Long> movieIds = List.of(101L, 102L, 103L);
+                SessionFilterPutDTO dto = new SessionFilterPutDTO();
+                dto.setRoundLimit(3);
+                dto.setGenres(List.of("Action", "Romance"));
+                dto.setMinRating(7.5);
+                dto.setReleaseYear(2024);
 
-        Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
-        Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        Mockito.when(tmdbService.discoverMovieIds(Mockito.eq(3), Mockito.any(MovieFilters.class)))
-                .thenReturn(movieIds);
+                List<Long> movieIds = List.of(101L, 102L, 103L);
 
-        Session updatedSession = sessionService.updateSessionFilters("ABCDE", dto);
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
+                Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+                Mockito.when(tmdbService.discoverMovieIds(Mockito.eq(3), Mockito.any(MovieFilters.class)))
+                                .thenReturn(movieIds);
 
-        Mockito.verify(tmdbService).discoverMovieIds(Mockito.eq(3), Mockito.any(MovieFilters.class));
-        Mockito.verify(sessionRepository).save(storedSession);
-        Mockito.verify(sessionRepository).flush();
+                Session updatedSession = sessionService.updateSessionFilters("ABCDE", dto);
 
-        assertEquals(3, updatedSession.getRoundLimit());
-        assertEquals(0, updatedSession.getCurrentMovieIndex());
-        assertEquals(movieIds, updatedSession.getSessionMovieIds());
-    }
+                Mockito.verify(tmdbService).discoverMovieIds(Mockito.eq(3), Mockito.any(MovieFilters.class));
+                Mockito.verify(sessionRepository).save(storedSession);
+                Mockito.verify(sessionRepository).flush();
 
-    @Test
-    void updateSessionFilters_withoutRoundLimit_usesDefaultLimit() {
-        Session storedSession = new Session();
-        storedSession.setSessionId(1L);
-        storedSession.setSessionCode("ABCDE");
+                assertEquals(3, updatedSession.getRoundLimit());
+                assertEquals(0, updatedSession.getCurrentMovieIndex());
+                assertEquals(movieIds, updatedSession.getSessionMovieIds());
+        }
 
-        SessionFilterPutDTO dto = new SessionFilterPutDTO();
-        dto.setGenres(List.of("Action"));
+        @Test
+        void updateSessionFilters_withoutRoundLimit_usesDefaultLimit() {
+                Session storedSession = new Session();
+                storedSession.setSessionId(1L);
+                storedSession.setSessionCode("ABCDE");
 
-        List<Long> movieIds = java.util.stream.LongStream.rangeClosed(1, 15).boxed().toList();
+                SessionFilterPutDTO dto = new SessionFilterPutDTO();
+                dto.setGenres(List.of("Action"));
 
-        Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
-        Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        Mockito.when(tmdbService.discoverMovieIds(Mockito.eq(15), Mockito.any(MovieFilters.class)))
-                .thenReturn(movieIds);
+                List<Long> movieIds = java.util.stream.LongStream.rangeClosed(1, 15).boxed().toList();
 
-        Session updatedSession = sessionService.updateSessionFilters("ABCDE", dto);
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
+                Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+                Mockito.when(tmdbService.discoverMovieIds(Mockito.eq(15), Mockito.any(MovieFilters.class)))
+                                .thenReturn(movieIds);
 
-        Mockito.verify(tmdbService).discoverMovieIds(Mockito.eq(15), Mockito.any(MovieFilters.class));
-        assertEquals(15, updatedSession.getRoundLimit());
-        assertEquals(movieIds, updatedSession.getSessionMovieIds());
-    }
+                Session updatedSession = sessionService.updateSessionFilters("ABCDE", dto);
 
-    @Test
-    void updateSessionFilters_unknownSession_throwsNotFound() {
-        SessionFilterPutDTO dto = new SessionFilterPutDTO();
-        dto.setGenres(List.of("Action"));
+                Mockito.verify(tmdbService).discoverMovieIds(Mockito.eq(15), Mockito.any(MovieFilters.class));
+                assertEquals(15, updatedSession.getRoundLimit());
+                assertEquals(movieIds, updatedSession.getSessionMovieIds());
+        }
 
-        Mockito.when(sessionRepository.findSessionBySessionCode("MISSING")).thenReturn(null);
+        @Test
+        void updateSessionFilters_unknownSession_throwsNotFound() {
+                SessionFilterPutDTO dto = new SessionFilterPutDTO();
+                dto.setGenres(List.of("Action"));
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> sessionService.updateSessionFilters("MISSING", dto)
-        );
+                Mockito.when(sessionRepository.findSessionBySessionCode("MISSING")).thenReturn(null);
 
-        assertEquals(404, exception.getStatusCode().value());
-        assertEquals("Session could not be found.", exception.getReason());
-    }
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> sessionService.updateSessionFilters("MISSING", dto));
 
-    @Test
-    void updateSessionFilters_withoutAnyFilters_fetchesDefaultMoviePool() {
-        Session storedSession = new Session();
-        storedSession.setSessionId(1L);
-        storedSession.setSessionCode("ABCDE");
+                assertEquals(404, exception.getStatusCode().value());
+                assertEquals("Session could not be found.", exception.getReason());
+        }
 
-        SessionFilterPutDTO dto = new SessionFilterPutDTO();
-        dto.setRoundLimit(3);
+        @Test
+        void updateSessionFilters_withoutAnyFilters_fetchesDefaultMoviePool() {
+                Session storedSession = new Session();
+                storedSession.setSessionId(1L);
+                storedSession.setSessionCode("ABCDE");
 
-        List<Long> movieIds = List.of(11L, 12L, 13L);
+                SessionFilterPutDTO dto = new SessionFilterPutDTO();
+                dto.setRoundLimit(3);
 
-        Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
-        Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        Mockito.when(tmdbService.discoverMovieIds(Mockito.eq(3), Mockito.any(MovieFilters.class)))
-                .thenReturn(movieIds);
+                List<Long> movieIds = List.of(11L, 12L, 13L);
 
-        Session updatedSession = sessionService.updateSessionFilters("ABCDE", dto);
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
+                Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+                Mockito.when(tmdbService.discoverMovieIds(Mockito.eq(3), Mockito.any(MovieFilters.class)))
+                                .thenReturn(movieIds);
 
-        assertEquals(3, updatedSession.getRoundLimit());
-        assertEquals(List.of(11L, 12L, 13L), updatedSession.getSessionMovieIds());
-        assertEquals(0, updatedSession.getCurrentMovieIndex());
-    }
+                Session updatedSession = sessionService.updateSessionFilters("ABCDE", dto);
+
+                assertEquals(3, updatedSession.getRoundLimit());
+                assertEquals(List.of(11L, 12L, 13L), updatedSession.getSessionMovieIds());
+                assertEquals(0, updatedSession.getCurrentMovieIndex());
+        }
 }

@@ -10,8 +10,8 @@ import ch.uzh.ifi.hase.soprafs26.entity.Vote;
 @Repository("voteRepository")
 public interface VoteRepository extends JpaRepository<Vote, Long> {
 
-    @Query("SELECT SUM(v.score) FROM Vote v WHERE v.sessionId = :sessionId AND v.movieId = :movieId")
-    Integer getSumOfScores(@Param("sessionId") Long sessionId, @Param("movieId") Long movieId);
+    @Query("SELECT SUM(v.score) FROM Vote v WHERE v.sessionCode = :sessionCode AND v.movieId = :movieId")
+    Integer getSumOfScores(@Param("sessionCode") String sessionCode, @Param("movieId") Long movieId);
 
     // Like that we can once the session is over, calculate the total score for each
     // movie and then fetch this all together
