@@ -152,6 +152,24 @@ class SessionControllerTest {
                                 .andExpect(status().isNotFound());
         }
 
+        // Fetching session successfully returns joinedUsers count
+        // GET /session/{sessionCode} 200
+        @Test
+        void getSessionStatus_validSessionCode_getSuccessful() throws Exception {
+                given(sessionService.getSessionByCode("test1234")).willReturn(testSession);
+                given(sessionService.countUsersInSession(testSession)).willReturn(2);
+
+                MockHttpServletRequestBuilder getRequest = get("/session/test1234")
+                                .contentType(MediaType.APPLICATION_JSON);
+
+                mockMvc.perform(getRequest)
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sessionCode", is(testSession.getSessionCode())))
+                                .andExpect(jsonPath("$.sessionId", is(testSession.getSessionId().intValue())))
+                                .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())))
+                                .andExpect(jsonPath("$.joinedUsers", is(2)));
+        }
+
         @Test
         void getNextMovie_validSessionCode_returnsMovie() throws Exception {
                 Movie movie = new Movie(
