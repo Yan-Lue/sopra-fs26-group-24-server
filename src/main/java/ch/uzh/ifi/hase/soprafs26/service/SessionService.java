@@ -177,4 +177,10 @@ public class SessionService {
 
         return session;
     }
+
+    public int countUsersInSession(Session session) {
+        long guestCount = guestUserRepository.countByCurrentSession(session);
+        long userCount = userRepository.countByCurrentSession(session);
+        return (int) (guestCount + userCount);
+    }
 }

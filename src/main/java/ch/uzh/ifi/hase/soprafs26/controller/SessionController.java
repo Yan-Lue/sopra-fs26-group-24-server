@@ -58,4 +58,13 @@ public class SessionController {
         Session updatedSession = sessionService.updateSessionFilters(sessionCode, sessionFilterPutDTO);
         return DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(updatedSession);
     }
+
+    @GetMapping("/session/{sessionCode}")
+    @ResponseStatus(HttpStatus.OK)
+    public SessionGetDTO getSession(@PathVariable String sessionCode) {
+        Session session = sessionService.getSessionByCode(sessionCode);
+        SessionGetDTO sessionGetDTO = DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(session);
+        sessionGetDTO.setJoinedUsers(sessionService.countUsersInSession(session));
+        return sessionGetDTO;
+    }
 }

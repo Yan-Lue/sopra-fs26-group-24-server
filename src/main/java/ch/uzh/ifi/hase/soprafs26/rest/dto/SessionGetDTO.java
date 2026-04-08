@@ -37,4 +37,12 @@ public class SessionGetDTO {
     public void setHostId(long hostId) {
         this.hostId = hostId;
     }
+
+    public int getJoinedUsers() {
+        return joinedUsers;
+    }
+
+    public void setJoinedUsers(int joinedUsers) {
+        this.joinedUsers = joinedUsers;
+    }
 }
