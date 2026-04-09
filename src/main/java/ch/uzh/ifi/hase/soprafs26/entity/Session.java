@@ -28,6 +28,9 @@ public class Session implements Serializable {
     @Column(nullable = false)
     private Integer maxPlayers;
 
+    @Column(nullable = true, name = "joinedUsers")
+    private Integer joinedUsers;
+
     @Column(nullable = true)
     private Integer roundLimit;
 
@@ -82,6 +85,14 @@ public class Session implements Serializable {
 
     public void setMaxPlayers(Integer maxPlayers) {
         this.maxPlayers = maxPlayers;
+    }
+
+    public Integer getJoinedUsers() {
+        return joinedUsers;
+    }
+
+    public void setJoinedUsers(Integer joinedUsers) {
+        this.joinedUsers = joinedUsers;
     }
 
     public Integer getRoundLimit() {
