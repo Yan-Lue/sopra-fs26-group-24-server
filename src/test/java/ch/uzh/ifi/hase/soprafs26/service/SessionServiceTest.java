@@ -10,6 +10,7 @@ import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import ch.uzh.ifi.hase.soprafs26.service.model.MovieFilters;
 import ch.uzh.ifi.hase.soprafs26.service.model.SimilarMovie;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.MovieResultDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -261,4 +263,44 @@ class SessionServiceTest {
                 assertEquals(List.of(11L, 12L, 13L), updatedSession.getSessionMovieIds());
                 assertEquals(0, updatedSession.getCurrentMovieIndex());
         }
+
+        @Test
+        void calculateFullLeaderboard_validSession_returnsMovieResults() {
+                Session retrievedSession = testSession;
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("test1234")).thenReturn(retrievedSession);
+                Mockito.when(tmdbService.getMovieResults(Mockito.anyMap()))
+                                .thenReturn(new ArrayList<>(List.of(
+                                                new MovieResultDTO(011L, "Fight Club", 8,
+                                                                "https://someImagetoMovie.jpg"),
+                                                new MovieResultDTO(111L, "Fight Club 2", 8,
+                                                                "https://someImagetoMovie2.jpg"))));
+
+                List<MovieResultDTO> results = sessionService.calculateFullLeaderboard("test1234");
+
+                assertEquals(2, results.size());
+                assertEquals(011L, results.get(0).getMovieId());
+                assertEquals("Fight Club", results.get(0).getTitle());
+                assertEquals(8, results.get(0).getScore());
+                assertEquals("https://someImagetoMovie.jpg", results.get(0).getPosterPath());
+                assertEquals(111L, results.get(1).getMovieId());
+                assertEquals("Fight Club 2", results.get(1).getTitle());
+                assertEquals(8, results.get(1).getScore());
+                assertEquals("https://someImagetoMovie2.jpg", results.get(1).getPosterPath());
+
+        }
+
+        @Test
+        void calculateFullLeaderboard_invalidSession_throwsNotFound() {
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("random")).thenReturn(null);
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> sessionService.calculateFullLeaderboard("random"));
+
+                assertEquals(404, exception.getStatusCode().value());
+                assertEquals("Session could not be found.", exception.getReason());
+        }
+
 }
