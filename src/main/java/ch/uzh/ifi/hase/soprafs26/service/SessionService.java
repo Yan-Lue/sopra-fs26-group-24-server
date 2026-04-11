@@ -17,6 +17,7 @@ import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.VoteRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.VotePutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.MovieResultDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
 import ch.uzh.ifi.hase.soprafs26.service.model.MovieFilters;
 import jakarta.transaction.Transactional;
@@ -278,5 +279,28 @@ public class SessionService {
 
         return;
 
+    }
+
+    public List<MovieResultDTO> calculateFullLeaderboard(String sessionCode) {
+        Session session = getSessionByCode(sessionCode);
+
+        List<Long> movieIds = session.getSessionMovieIds();
+
+        Map<Long, Integer> movieScores = new HashMap<>();
+
+        for (Long movieId : movieIds) {
+            Integer score = voteRepository.getSumOfScores(sessionCode, movieId);
+            movieScores.put(movieId, score != null ? score : 0);
+        }
+
+        List<MovieResultDTO> results = tmdbService.getMovieResults(movieScores);
+
+        // Sort the results by score in descending order
+        // AI generated code, if better options also try them out!
+        results.sort((r1, r2) -> r2.getScore().compareTo(r1.getScore()));
+
+        messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/results", results);
+
+        return results;
     }
 }
