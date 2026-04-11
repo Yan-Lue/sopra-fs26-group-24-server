@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.MovieResultDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import ch.uzh.ifi.hase.soprafs26.service.model.SimilarMovie;
@@ -210,41 +211,42 @@ class SessionControllerTest {
 
         @Test
         void updateSessionFilters_validInput_returnsOk() throws Exception {
-            SessionFilterPutDTO dto = new SessionFilterPutDTO();
-            dto.setRoundLimit(10);
-            dto.setGenres(List.of("Action", "Romance"));
-            dto.setMinRating(7.5);
-            dto.setReleaseYear(2024);
+                SessionFilterPutDTO dto = new SessionFilterPutDTO();
+                dto.setRoundLimit(10);
+                dto.setGenres(List.of("Action", "Romance"));
+                dto.setMinRating(7.5);
+                dto.setReleaseYear(2024);
 
-            given(sessionService.updateSessionFilters(eq("test1234"), any(SessionFilterPutDTO.class)))
-                    .willReturn(testSession);
+                given(sessionService.updateSessionFilters(eq("test1234"), any(SessionFilterPutDTO.class)))
+                                .willReturn(testSession);
 
-            MockHttpServletRequestBuilder putRequest = put("/session/test1234/filters")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(asJsonString(dto));
+                MockHttpServletRequestBuilder putRequest = put("/session/test1234/filters")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(asJsonString(dto));
 
-            mockMvc.perform(putRequest)
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.sessionCode", is(testSession.getSessionCode())))
-                    .andExpect(jsonPath("$.sessionId", is(1)))
-                    .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())));
+                mockMvc.perform(putRequest)
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sessionCode", is(testSession.getSessionCode())))
+                                .andExpect(jsonPath("$.sessionId", is(1)))
+                                .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())));
         }
 
         @Test
         void updateSessionFilters_unknownSession_returnsNotFound() throws Exception {
-            SessionFilterPutDTO dto = new SessionFilterPutDTO();
-            dto.setRoundLimit(10);
-            dto.setGenres(List.of("Action"));
+                SessionFilterPutDTO dto = new SessionFilterPutDTO();
+                dto.setRoundLimit(10);
+                dto.setGenres(List.of("Action"));
 
-            given(sessionService.updateSessionFilters(eq("missing"), any(SessionFilterPutDTO.class)))
-                    .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found."));
+                given(sessionService.updateSessionFilters(eq("missing"), any(SessionFilterPutDTO.class)))
+                                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                                "Session could not be found."));
 
-            MockHttpServletRequestBuilder putRequest = put("/session/missing/filters")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(asJsonString(dto));
+                MockHttpServletRequestBuilder putRequest = put("/session/missing/filters")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(asJsonString(dto));
 
-            mockMvc.perform(putRequest)
-                    .andExpect(status().isNotFound());
+                mockMvc.perform(putRequest)
+                                .andExpect(status().isNotFound());
         }
 
         private String asJsonString(final Object object) {
@@ -254,5 +256,38 @@ class SessionControllerTest {
                         throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                                         String.format("The request body could not be created.%s", e));
                 }
+        }
+
+        @Test
+        void getSessionResults_validSessionCode_returnsResults() throws Exception {
+                // Mock the service to return some results
+                given(sessionService.calculateFullLeaderboard("test1234"))
+                                .willReturn(List.of(new MovieResultDTO(550L, "Fight Club", 8,
+                                                "https://someImagetoMovie.jpg")));
+
+                MockHttpServletRequestBuilder getRequest = get("/session/test1234/results")
+                                .contentType(MediaType.APPLICATION_JSON);
+
+                mockMvc.perform(getRequest)
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$", hasSize(1)))
+                                .andExpect(jsonPath("$[0].movieId", is(550)))
+                                .andExpect(jsonPath("$[0].title", is("Fight Club")))
+                                .andExpect(jsonPath("$[0].score", is(8)))
+                                .andExpect(jsonPath("$[0].posterPath", is("https://someImagetoMovie.jpg")));
+        }
+
+        @Test
+        void getSessionResults_invalidSessionCode_returnsNotFound() throws Exception {
+
+                given(sessionService.calculateFullLeaderboard("random"))
+                                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                                "Session could not be found."));
+
+                MockHttpServletRequestBuilder getRequest = get("/session/random/results")
+                                .contentType(MediaType.APPLICATION_JSON);
+
+                mockMvc.perform(getRequest)
+                                .andExpect(status().isNotFound());
         }
 }

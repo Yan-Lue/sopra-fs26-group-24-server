@@ -346,6 +346,8 @@ public class SessionService {
         // AI generated code, if better options also try them out!
         results.sort((r1, r2) -> r2.getScore().compareTo(r1.getScore()));
 
+        // IMPORTANT: the frontend needs to subscribe to the topic
+        // "/topic/session/{sessionCode}/results" to receive the movie results
         messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/results", results);
 
         return results;
