@@ -56,6 +56,14 @@ public class SessionController {
         return DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
     }
 
+    @GetMapping("/session/{sessionCode}/current")
+    @ResponseStatus(HttpStatus.OK)
+    public MovieGetDTO getCurrentMovie(@PathVariable String sessionCode) {
+        Movie movie = sessionService.getCurrentMovie(sessionCode);
+
+        return DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+    }
+
     @PostMapping("/session/{sessionCode}/vote")
     public String setVote(@PathVariable String sessionCode, @RequestBody VotePutDTO votePutDTO) {
 

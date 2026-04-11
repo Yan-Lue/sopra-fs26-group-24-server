@@ -168,9 +168,21 @@ public class SessionService {
         Integer maxPlayers = newSession.getMaxPlayers();
         Long hostId = newSession.getHostId();
 
-        if (sessionName == null || maxPlayers == null || hostId == null) {
+        if (sessionName == null || sessionName.trim().isEmpty() || maxPlayers == null || hostId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create Session");
         }
+    }
+
+    private void broadcastSessionEnded(String sessionCode, String reason, int currentMovieIndex, int totalMovies) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "SESSION_ENDED");
+        payload.put("sessionCode", sessionCode);
+        payload.put("reason", reason);
+        payload.put("currentMovieIndex", currentMovieIndex);
+        payload.put("totalMovies", totalMovies);
+        payload.put("timestamp", System.currentTimeMillis());
+
+        messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/end", (Object) payload);
     }
 
     public Movie getNextMovie(String sessionCode) {
@@ -188,6 +200,11 @@ public class SessionService {
         }
 
         if (currentMovieIndex == null || currentMovieIndex < 0 || currentMovieIndex >= movieIds.size()) {
+            session.setStatus(SessionStatus.OFFLINE);
+            sessionRepository.save(session);
+            sessionRepository.flush();
+
+            broadcastSessionEnded(sessionCode, "NO_MORE_MOVIES", currentMovieIndex == null ? -1 : currentMovieIndex, movieIds.size());
             throw new ResponseStatusException(HttpStatus.CONFLICT, "No more movies available in this session");
         }
 
@@ -205,6 +222,36 @@ public class SessionService {
         messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/next", movie);
 
         return movie;
+    }
+
+    // this method is needed for correct redirection because of timing issues with the websocket
+    public Movie getCurrentMovie(String sessionCode) {
+        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
+
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
+        }
+
+        List<Long> movieIds = session.getSessionMovieIds();
+        Integer currentMovieIndex = session.getCurrentMovieIndex();
+
+        // Session not started yet (host has not called /next once)
+        if (movieIds == null || movieIds.isEmpty() || currentMovieIndex == null || currentMovieIndex <= 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session has not started yet");
+        }
+
+        if (session.getStatus() == SessionStatus.OFFLINE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session has ended");
+        }
+
+        int currentIndex = currentMovieIndex - 1;
+
+        if (currentIndex < 0 || currentIndex >= movieIds.size()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No current movie available");
+        }
+
+        Long movieId = movieIds.get(currentIndex);
+        return tmdbService.getMovieDetails(movieId);
     }
 
     public Session updateSessionFilters(String sessionCode, SessionFilterPutDTO dto) {
