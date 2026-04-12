@@ -258,22 +258,41 @@ class SessionControllerTest {
         }
 
         @Test
-        void getSessionResults_validSessionCode_returnsResults() throws Exception {
-                // Mock the service to return some results
-                given(sessionService.calculateFullLeaderboard("test1234"))
-                                .willReturn(List.of(new MovieResultDTO(550L, "Fight Club", 8,
-                                                "https://someImagetoMovie.jpg")));
+        void getSessionResults_validSessionCode_returnsDetailedResults() throws Exception {
+                MovieResultDTO dto = new MovieResultDTO(
+                        550L,
+                        "Fight Club",
+                        8,
+                        "https://someImagetoMovie.jpg",
+                        "Insomnia and soap.",
+                        8.4,
+                        "1999-10-15",
+                        List.of("Drama", "Thriller"),
+                        List.of(),
+                        5,
+                        1,
+                        2
+                );
+
+                given(sessionService.calculateFullLeaderboard("test1234")).willReturn(List.of(dto));
 
                 MockHttpServletRequestBuilder getRequest = get("/session/test1234/results")
-                                .contentType(MediaType.APPLICATION_JSON);
+                        .contentType(MediaType.APPLICATION_JSON);
 
                 mockMvc.perform(getRequest)
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$", hasSize(1)))
-                                .andExpect(jsonPath("$[0].movieId", is(550)))
-                                .andExpect(jsonPath("$[0].title", is("Fight Club")))
-                                .andExpect(jsonPath("$[0].score", is(8)))
-                                .andExpect(jsonPath("$[0].posterPath", is("https://someImagetoMovie.jpg")));
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$", hasSize(1)))
+                        .andExpect(jsonPath("$[0].movieId", is(550)))
+                        .andExpect(jsonPath("$[0].title", is("Fight Club")))
+                        .andExpect(jsonPath("$[0].score", is(8)))
+                        .andExpect(jsonPath("$[0].posterPath", is("https://someImagetoMovie.jpg")))
+                        .andExpect(jsonPath("$[0].description", is("Insomnia and soap.")))
+                        .andExpect(jsonPath("$[0].rating", is(8.4)))
+                        .andExpect(jsonPath("$[0].releaseDate", is("1999-10-15")))
+                        .andExpect(jsonPath("$[0].genres", hasSize(2)))
+                        .andExpect(jsonPath("$[0].likes", is(5)))
+                        .andExpect(jsonPath("$[0].dislikes", is(1)))
+                        .andExpect(jsonPath("$[0].neutrals", is(2)));
         }
 
         @Test

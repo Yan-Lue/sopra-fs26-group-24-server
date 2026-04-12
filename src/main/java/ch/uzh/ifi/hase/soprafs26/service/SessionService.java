@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.ArrayList;
 
 @Service
 @Transactional
@@ -344,14 +345,41 @@ public class SessionService {
 
         List<Long> movieIds = session.getSessionMovieIds();
 
-        Map<Long, Integer> movieScores = new HashMap<>();
+        List<MovieResultDTO> results = new ArrayList<>();
 
         for (Long movieId : movieIds) {
-            Integer score = voteRepository.getSumOfScores(sessionCode, movieId);
-            movieScores.put(movieId, score != null ? score : 0);
-        }
+            Movie movie = tmdbService.getMovieDetails(movieId);
 
-        List<MovieResultDTO> results = tmdbService.getMovieResults(movieScores);
+            int likes = voteRepository.countBySessionCodeAndMovieIdAndScore(sessionCode, movieId, 1).intValue();
+            int dislikes = voteRepository.countBySessionCodeAndMovieIdAndScore(sessionCode, movieId, -1).intValue();
+            int neutrals = voteRepository.countBySessionCodeAndMovieIdAndScore(sessionCode, movieId, 0).intValue();
+
+            Integer summedScore = voteRepository.getSumOfScores(sessionCode, movieId);
+            int score = summedScore != null ? summedScore : 0;
+
+            List<SimilarMovieGetDTO> similarMovieDTOs =
+                    movie.getSimilarMovies() == null
+                            ? List.of()
+                            : movie.getSimilarMovies().stream()
+                                    .map(ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper.INSTANCE::convertSimilarMovieToDTO)
+                                    .toList();
+
+            MovieResultDTO dto = new MovieResultDTO(
+                    movie.getId(),
+                    movie.getTitle(),
+                    score,
+                    movie.getPosterPath(),
+                    movie.getOverview(),
+                    movie.getRating(),
+                    movie.getReleaseDate(),
+                    movie.getGenres(),
+                    similarMovieDTOs,
+                    likes,
+                    dislikes,
+                    neutrals);
+
+            results.add(dto);
+        }
 
         // Sort the results by score in descending order
         // AI generated code, if better options also try them out!

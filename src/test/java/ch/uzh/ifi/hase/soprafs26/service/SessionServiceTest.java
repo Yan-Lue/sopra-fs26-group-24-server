@@ -7,6 +7,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.SessionRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.VoteRepository;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import ch.uzh.ifi.hase.soprafs26.service.model.MovieFilters;
 import ch.uzh.ifi.hase.soprafs26.service.model.SimilarMovie;
@@ -24,6 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -44,6 +46,9 @@ class SessionServiceTest {
 
         @Mock
         private SimpMessagingTemplate messagingTemplate;
+
+        @Mock
+        private VoteRepository voteRepository;
 
         @InjectMocks
         private SessionService sessionService;
@@ -268,29 +273,69 @@ class SessionServiceTest {
         }
 
         @Test
-        void calculateFullLeaderboard_validSession_returnsMovieResults() {
-                Session retrievedSession = testSession;
+        void calculateFullLeaderboard_validSession_returnsDetailedSortedResultsAndBroadcasts() {
+                Session session = new Session();
+                session.setSessionCode("test1234");
+                session.setSessionMovieIds(List.of(11L, 22L));
 
-                Mockito.when(sessionRepository.findSessionBySessionCode("test1234")).thenReturn(retrievedSession);
-                Mockito.when(tmdbService.getMovieResults(Mockito.anyMap()))
-                                .thenReturn(new ArrayList<>(List.of(
-                                                new MovieResultDTO(011L, "Fight Club", 8,
-                                                                "https://someImagetoMovie.jpg"),
-                                                new MovieResultDTO(111L, "Fight Club 2", 8,
-                                                                "https://someImagetoMovie2.jpg"))));
+                Movie movie1 = new Movie(
+                        11L,
+                        "Movie A",
+                        "Desc A",
+                        "https://img/a.jpg",
+                        7.5,
+                        "2020-01-01",
+                        List.of("Drama"),
+                        List.of(new SimilarMovie(111L, "Sim A", "https://img/simA.jpg", 6.8, "2019-01-01"))
+                );
+
+                Movie movie2 = new Movie(
+                        22L,
+                        "Movie B",
+                        "Desc B",
+                        "https://img/b.jpg",
+                        8.4,
+                        "2021-01-01",
+                        List.of("Action"),
+                        List.of()
+                );
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("test1234")).thenReturn(session);
+                Mockito.when(tmdbService.getMovieDetails(11L)).thenReturn(movie1);
+                Mockito.when(tmdbService.getMovieDetails(22L)).thenReturn(movie2);
+
+                Mockito.when(voteRepository.countBySessionCodeAndMovieIdAndScore("test1234", 11L, 1)).thenReturn(3L);
+                Mockito.when(voteRepository.countBySessionCodeAndMovieIdAndScore("test1234", 11L, -1)).thenReturn(1L);
+                Mockito.when(voteRepository.countBySessionCodeAndMovieIdAndScore("test1234", 11L, 0)).thenReturn(2L);
+                Mockito.when(voteRepository.getSumOfScores("test1234", 11L)).thenReturn(2);
+
+                Mockito.when(voteRepository.countBySessionCodeAndMovieIdAndScore("test1234", 22L, 1)).thenReturn(5L);
+                Mockito.when(voteRepository.countBySessionCodeAndMovieIdAndScore("test1234", 22L, -1)).thenReturn(0L);
+                Mockito.when(voteRepository.countBySessionCodeAndMovieIdAndScore("test1234", 22L, 0)).thenReturn(1L);
+                Mockito.when(voteRepository.getSumOfScores("test1234", 22L)).thenReturn(5);
 
                 List<MovieResultDTO> results = sessionService.calculateFullLeaderboard("test1234");
 
                 assertEquals(2, results.size());
-                assertEquals(011L, results.get(0).getMovieId());
-                assertEquals("Fight Club", results.get(0).getTitle());
-                assertEquals(8, results.get(0).getScore());
-                assertEquals("https://someImagetoMovie.jpg", results.get(0).getPosterPath());
-                assertEquals(111L, results.get(1).getMovieId());
-                assertEquals("Fight Club 2", results.get(1).getTitle());
-                assertEquals(8, results.get(1).getScore());
-                assertEquals("https://someImagetoMovie2.jpg", results.get(1).getPosterPath());
 
+                assertEquals(22L, results.get(0).getMovieId());
+                assertEquals("Movie B", results.get(0).getTitle());
+                assertEquals(5, results.get(0).getScore());
+                assertEquals(5, results.get(0).getLikes());
+                assertEquals(0, results.get(0).getDislikes());
+                assertEquals(1, results.get(0).getNeutrals());
+
+                assertEquals(11L, results.get(1).getMovieId());
+                assertEquals("Movie A", results.get(1).getTitle());
+                assertEquals("Desc A", results.get(1).getDescription());
+                assertEquals(2, results.get(1).getScore());
+                assertEquals(3, results.get(1).getLikes());
+                assertEquals(1, results.get(1).getDislikes());
+                assertEquals(2, results.get(1).getNeutrals());
+                assertEquals(1, results.get(1).getSimilarMovies().size());
+
+                Mockito.verify(messagingTemplate).convertAndSend("/topic/session/test1234/results", results);
+                Mockito.verify(tmdbService, Mockito.never()).getMovieResults(Mockito.anyMap());
         }
 
         @Test
@@ -304,6 +349,29 @@ class SessionServiceTest {
 
                 assertEquals(404, exception.getStatusCode().value());
                 assertEquals("Session could not be found.", exception.getReason());
+        }
+
+        @Test
+        void calculateFullLeaderboard_whenSumIsNull_usesZeroScore() {
+                Session session = new Session();
+                session.setSessionCode("test1234");
+                session.setSessionMovieIds(List.of(11L));
+
+                Movie movie = new Movie(
+                        11L, "Movie A", "Desc A", "https://img/a.jpg", 7.5, "2020-01-01", List.of("Drama"), List.of()
+                );
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("test1234")).thenReturn(session);
+                Mockito.when(tmdbService.getMovieDetails(11L)).thenReturn(movie);
+                Mockito.when(voteRepository.countBySessionCodeAndMovieIdAndScore("test1234", 11L, 1)).thenReturn(0L);
+                Mockito.when(voteRepository.countBySessionCodeAndMovieIdAndScore("test1234", 11L, -1)).thenReturn(0L);
+                Mockito.when(voteRepository.countBySessionCodeAndMovieIdAndScore("test1234", 11L, 0)).thenReturn(0L);
+                Mockito.when(voteRepository.getSumOfScores("test1234", 11L)).thenReturn(null);
+
+                List<MovieResultDTO> results = sessionService.calculateFullLeaderboard("test1234");
+
+                assertEquals(1, results.size());
+                assertEquals(0, results.get(0).getScore());
         }
 
         @Test

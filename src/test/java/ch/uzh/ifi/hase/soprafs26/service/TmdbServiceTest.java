@@ -8,6 +8,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.MovieResultDTO;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -16,6 +17,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -196,6 +198,36 @@ class TmdbServiceTest {
         assertNull(movie.getPosterPath());
         assertEquals(List.of(), movie.getGenres());
         assertEquals(List.of(), movie.getSimilarMovies());
+    }
+
+    @Test
+    void getMovieResults_mapsExtendedFields() {
+        movieResponse = """
+                {
+                  "id": 550,
+                  "title": "Fight Club",
+                  "overview": "Insomnia and soap.",
+                  "poster_path": "/fight-club.jpg",
+                  "vote_average": 8.4,
+                  "release_date": "1999-10-15",
+                  "genres": [{ "id": 18, "name": "Drama" }]
+                }
+                """;
+        similarMovieResponse = """
+                { "results": [] }
+                """;
+
+        List<MovieResultDTO> results = tmdbService.getMovieResults(Map.of(550L, 3));
+
+        assertEquals(1, results.size());
+        assertEquals(550L, results.get(0).getMovieId());
+        assertEquals("Fight Club", results.get(0).getTitle());
+        assertEquals("Insomnia and soap.", results.get(0).getDescription());
+        assertEquals(3, results.get(0).getScore());
+        assertEquals("https://image.tmdb.org/t/p/w500/fight-club.jpg", results.get(0).getPosterPath());
+        assertEquals(8.4, results.get(0).getRating());
+        assertEquals("1999-10-15", results.get(0).getReleaseDate());
+        assertEquals(List.of("Drama"), results.get(0).getGenres());
     }
 
     @Test

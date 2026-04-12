@@ -19,4 +19,6 @@ public interface VoteRepository extends JpaRepository<Vote, Long> {
 
     Vote findBySessionCodeAndUserIdAndMovieId(@Param("sessionCode") String sessionCode, @Param("userId") Long userId,
             @Param("movieId") Long movieId);
+
+    Long countBySessionCodeAndMovieIdAndScore(@Param("sessionCode") String sessionCode, @Param("movieId") Long movieId, @Param("score") Integer score);
 }
