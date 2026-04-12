@@ -139,6 +139,7 @@ class SessionServiceTest {
                 Mockito.verify(tmdbService, Mockito.times(1)).getMovieDetails(55L);
                 Mockito.verify(sessionRepository, Mockito.times(1)).save(storedSession);
                 Mockito.verify(sessionRepository, Mockito.times(1)).flush();
+                Mockito.verify(messagingTemplate).convertAndSend("/topic/session/1/next", movie);
         }
 
         @Test
@@ -316,5 +317,112 @@ class SessionServiceTest {
             Integer result = sessionService.getSessionTiming("ABCDE");
 
             assertEquals(30, result);
+        }
+
+        @Test
+        void getNextMovie_whenNoMoreMovies_setsOffline_broadcastsEndAndThrowsConflict() {
+                Session storedSession = new Session();
+                storedSession.setSessionId(1L);
+                storedSession.setSessionCode("ABCDE");
+                storedSession.setCurrentMovieIndex(2);
+                storedSession.setSessionMovieIds(List.of(55L, 66L));
+                storedSession.setStatus(SessionStatus.ONLINE);
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
+                Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+                ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> sessionService.getNextMovie("ABCDE"));
+
+                assertEquals(409, exception.getStatusCode().value());
+                assertEquals("No more movies available in this session", exception.getReason());
+                assertEquals(SessionStatus.OFFLINE, storedSession.getStatus());
+
+                Mockito.verify(sessionRepository).save(storedSession);
+                Mockito.verify(sessionRepository).flush();
+                Mockito.verify(messagingTemplate).convertAndSend("/topic/session/ABCDE/end", "ABCDE");
+                Mockito.verifyNoInteractions(tmdbService);
+        }
+
+        @Test
+        void getCurrentMovie_startedSession_returnsCurrentMovie() {
+                Session storedSession = new Session();
+                storedSession.setSessionId(1L);
+                storedSession.setSessionCode("ABCDE");
+                storedSession.setSessionMovieIds(List.of(55L, 66L));
+                storedSession.setCurrentMovieIndex(1);
+                storedSession.setStatus(SessionStatus.ONLINE);
+
+                Movie movie = new Movie(
+                55L,
+                "Fight Club",
+                "desc",
+                "/poster.jpg",
+                8.8,
+                "1999-10-15",
+                List.of("Drama"),
+                List.of());
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
+                Mockito.when(tmdbService.getMovieDetails(55L)).thenReturn(movie);
+
+                Movie result = sessionService.getCurrentMovie("ABCDE");
+
+                assertEquals(movie, result);
+                Mockito.verify(tmdbService).getMovieDetails(55L);
+        }
+
+        @Test
+        void getCurrentMovie_notStarted_throwsConflict() {
+                Session storedSession = new Session();
+                storedSession.setSessionId(1L);
+                storedSession.setSessionCode("ABCDE");
+                storedSession.setSessionMovieIds(List.of(55L, 66L));
+                storedSession.setCurrentMovieIndex(0);
+                storedSession.setStatus(SessionStatus.ONLINE);
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
+
+                ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> sessionService.getCurrentMovie("ABCDE"));
+
+                assertEquals(409, exception.getStatusCode().value());
+                assertEquals("Session has not started yet", exception.getReason());
+                Mockito.verifyNoInteractions(tmdbService);
+        }
+
+        @Test
+        void getCurrentMovie_offlineSession_throwsConflict() {
+                Session storedSession = new Session();
+                storedSession.setSessionId(1L);
+                storedSession.setSessionCode("ABCDE");
+                storedSession.setSessionMovieIds(List.of(55L, 66L));
+                storedSession.setCurrentMovieIndex(1);
+                storedSession.setStatus(SessionStatus.OFFLINE);
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
+
+                ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> sessionService.getCurrentMovie("ABCDE"));
+
+                assertEquals(409, exception.getStatusCode().value());
+                assertEquals("Session has ended", exception.getReason());
+                Mockito.verifyNoInteractions(tmdbService);
+        }
+
+        @Test
+        void getCurrentMovie_unknownSession_throwsNotFound() {
+                Mockito.when(sessionRepository.findSessionBySessionCode("MISSING")).thenReturn(null);
+
+                ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> sessionService.getCurrentMovie("MISSING"));
+
+                assertEquals(404, exception.getStatusCode().value());
+                assertEquals("Session could not be found.", exception.getReason());
         }
 }
