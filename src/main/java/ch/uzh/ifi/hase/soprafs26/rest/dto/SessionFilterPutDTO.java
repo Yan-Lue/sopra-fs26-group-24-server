@@ -7,6 +7,7 @@ public class SessionFilterPutDTO {
     private List<String> genres;
     private Double minRating;
     private Integer releaseYear;
+    private Integer timePerRound;
 
     public Integer getRoundLimit() {
         return roundLimit;
@@ -38,5 +39,13 @@ public class SessionFilterPutDTO {
 
     public void setReleaseYear(Integer releaseYear) {
         this.releaseYear = releaseYear;
+    }
+
+    public Integer getTimePerRound() {
+        return timePerRound;
+    }
+
+    public void setTimePerRound(Integer timePerRound) {
+        this.timePerRound = timePerRound;
     }
 }
