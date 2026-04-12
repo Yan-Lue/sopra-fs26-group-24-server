@@ -50,6 +50,9 @@ public class Session implements Serializable {
     @Column(nullable = false, unique = true)
     private String sessionToken;
 
+    @Column(nullable = false)
+    private Integer timePerRound;
+
     @ElementCollection
     @CollectionTable(name = "session_session_movie_id", joinColumns = @JoinColumn(name = "session_id"))
     @Column(name = "movie_id", nullable = false)
@@ -141,6 +144,14 @@ public class Session implements Serializable {
 
     public void setSessionToken(String sessionToken) {
         this.sessionToken = sessionToken;
+    }
+
+    public Integer getTimePerRound() {
+        return timePerRound;
+    }
+
+    public void setTimePerRound(Integer timePerRound) {
+        this.timePerRound = timePerRound;
     }
 
     public List<Long> getSessionMovieIds() {
