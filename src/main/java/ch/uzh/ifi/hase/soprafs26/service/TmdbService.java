@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SimilarMovieGetDTO;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -153,7 +154,14 @@ public class TmdbService {
 
                         // uses the function getMovieDetails to get the details out of the chache
                         Movie movie = getMovieDetails(movieId);
-                        results.add(new MovieResultDTO(movie.getId(), movie.getTitle(), score, movie.getPosterPath()));
+                        List<SimilarMovieGetDTO> similarMovieDTOs =
+                        movie.getSimilarMovies() == null
+                                ? List.of()
+                                : movie.getSimilarMovies().stream()
+                                        .map(ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper.INSTANCE::convertSimilarMovieToDTO)
+                                        .toList();
+                                        
+                        results.add(new MovieResultDTO(movie.getId(), movie.getTitle(), score, movie.getPosterPath(), movie.getOverview(), movie.getRating(), movie.getReleaseDate(), movie.getGenres(), similarMovieDTOs, null, null, null));
                 }
 
                 return results;

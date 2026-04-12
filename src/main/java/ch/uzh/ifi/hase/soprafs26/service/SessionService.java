@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.ArrayList;
 
 @Service
 @Transactional
@@ -185,13 +186,17 @@ public class SessionService {
         Integer maxPlayers = newSession.getMaxPlayers();
         Long hostId = newSession.getHostId();
 
-        if (sessionName == null || maxPlayers == null) {
+        if (sessionName == null || sessionName.trim().isEmpty() || maxPlayers == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create Session");
         }
 
         if ((userToken == null || userToken.isBlank()) && hostId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please try logging in again");
         }
+    }
+
+    private void broadcastSessionEnded(String sessionCode) {
+        messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/end", sessionCode);
     }
 
     public Movie getNextMovie(String sessionCode) {
@@ -209,6 +214,11 @@ public class SessionService {
         }
 
         if (currentMovieIndex == null || currentMovieIndex < 0 || currentMovieIndex >= movieIds.size()) {
+            session.setStatus(SessionStatus.OFFLINE);
+            sessionRepository.save(session);
+            sessionRepository.flush();
+
+            broadcastSessionEnded(sessionCode);
             throw new ResponseStatusException(HttpStatus.CONFLICT, "No more movies available in this session");
         }
 
@@ -226,6 +236,36 @@ public class SessionService {
         messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/next", movie);
 
         return movie;
+    }
+
+    // this method is needed for correct redirection because of timing issues with the websocket
+    public Movie getCurrentMovie(String sessionCode) {
+        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
+
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
+        }
+
+        List<Long> movieIds = session.getSessionMovieIds();
+        Integer currentMovieIndex = session.getCurrentMovieIndex();
+
+        // Session not started yet (host has not called /next once)
+        if (movieIds == null || movieIds.isEmpty() || currentMovieIndex == null || currentMovieIndex <= 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session has not started yet");
+        }
+
+        if (session.getStatus() == SessionStatus.OFFLINE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session has ended");
+        }
+
+        int currentIndex = currentMovieIndex - 1;
+
+        if (currentIndex < 0 || currentIndex >= movieIds.size()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No current movie available");
+        }
+
+        Long movieId = movieIds.get(currentIndex);
+        return tmdbService.getMovieDetails(movieId);
     }
 
     public Session updateSessionFilters(String sessionCode, SessionFilterPutDTO dto) {
@@ -305,14 +345,41 @@ public class SessionService {
 
         List<Long> movieIds = session.getSessionMovieIds();
 
-        Map<Long, Integer> movieScores = new HashMap<>();
+        List<MovieResultDTO> results = new ArrayList<>();
 
         for (Long movieId : movieIds) {
-            Integer score = voteRepository.getSumOfScores(sessionCode, movieId);
-            movieScores.put(movieId, score != null ? score : 0);
-        }
+            Movie movie = tmdbService.getMovieDetails(movieId);
 
-        List<MovieResultDTO> results = tmdbService.getMovieResults(movieScores);
+            int likes = voteRepository.countBySessionCodeAndMovieIdAndScore(sessionCode, movieId, 1).intValue();
+            int dislikes = voteRepository.countBySessionCodeAndMovieIdAndScore(sessionCode, movieId, -1).intValue();
+            int neutrals = voteRepository.countBySessionCodeAndMovieIdAndScore(sessionCode, movieId, 0).intValue();
+
+            Integer summedScore = voteRepository.getSumOfScores(sessionCode, movieId);
+            int score = summedScore != null ? summedScore : 0;
+
+            List<SimilarMovieGetDTO> similarMovieDTOs =
+                    movie.getSimilarMovies() == null
+                            ? List.of()
+                            : movie.getSimilarMovies().stream()
+                                    .map(ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper.INSTANCE::convertSimilarMovieToDTO)
+                                    .toList();
+
+            MovieResultDTO dto = new MovieResultDTO(
+                    movie.getId(),
+                    movie.getTitle(),
+                    score,
+                    movie.getPosterPath(),
+                    movie.getOverview(),
+                    movie.getRating(),
+                    movie.getReleaseDate(),
+                    movie.getGenres(),
+                    similarMovieDTOs,
+                    likes,
+                    dislikes,
+                    neutrals);
+
+            results.add(dto);
+        }
 
         // Sort the results by score in descending order
         // AI generated code, if better options also try them out!
