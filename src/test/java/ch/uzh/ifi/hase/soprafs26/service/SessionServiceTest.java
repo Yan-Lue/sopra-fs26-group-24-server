@@ -64,6 +64,7 @@ class SessionServiceTest {
 
                 testUser = new User();
                 testUser.setId(1L);
+                testUser.setToken(token);
 
                 testGuest = new GuestUser();
                 testGuest.setId(1L);
@@ -76,7 +77,7 @@ class SessionServiceTest {
                 Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
                                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-                Mockito.when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(testUser));
+                Mockito.when(userRepository.findByToken(token)).thenReturn(testUser);
 
                 Session createdSession = sessionService.createSession(testSession, token);
 
@@ -85,6 +86,7 @@ class SessionServiceTest {
                 Mockito.verify(sessionRepository).flush();
 
                 assertEquals(15, createdSession.getRoundLimit());
+                assertEquals(30, createdSession.getTimePerRound());
                 assertEquals(0, createdSession.getCurrentMovieIndex());
                 assertEquals(List.of(), createdSession.getSessionMovieIds());
                 assertEquals(SessionStatus.ONLINE, createdSession.getStatus());
@@ -303,4 +305,16 @@ class SessionServiceTest {
                 assertEquals("Session could not be found.", exception.getReason());
         }
 
+        @Test
+        void getSessionTIming_validSessionCode_returnsTimePerRound() {
+            Session storedSession = new Session();
+            storedSession.setSessionCode("ABCDE");
+            storedSession.setTimePerRound(30);
+
+            Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
+
+            Integer result = sessionService.getSessionTiming("ABCDE");
+
+            assertEquals(30, result);
+        }
 }

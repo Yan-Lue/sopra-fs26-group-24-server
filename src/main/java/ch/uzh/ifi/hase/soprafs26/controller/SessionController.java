@@ -6,7 +6,6 @@ import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import org.springframework.web.bind.annotation.*;
 
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
-import ch.uzh.ifi.hase.soprafs26.entity.Vote;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
@@ -81,13 +80,15 @@ public class SessionController {
 
     @GetMapping("/session/{sessionCode}/results")
     @ResponseStatus(HttpStatus.OK)
-    @ResponseBody
     public List<MovieResultDTO> getSessionResults(@PathVariable String sessionCode) {
         // You don't need a PostDTO here; the sessionCode is enough
         // to find the votes in the database.
-        List<MovieResultDTO> results = sessionService.calculateFullLeaderboard(sessionCode);
-
-        return results;
+        return sessionService.calculateFullLeaderboard(sessionCode);
     }
 
+    @GetMapping("/session/{sessionCode}/time")
+    @ResponseStatus(HttpStatus.OK)
+    public Integer getSessionTime(@PathVariable String sessionCode) {
+        return sessionService.getSessionTiming(sessionCode);
+    }
 }

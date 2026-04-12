@@ -4,14 +4,13 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import ch.uzh.ifi.hase.soprafs26.rest.dto.MovieResultDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
@@ -289,5 +288,17 @@ class SessionControllerTest {
 
                 mockMvc.perform(getRequest)
                                 .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void getSessionTime_validSessionCode_returnsOk() throws Exception {
+            given(sessionService.getSessionTiming("test123")).willReturn(30);
+
+            MockHttpServletRequestBuilder getRequest = get("/session/test123/time")
+                    .contentType(MediaType.APPLICATION_JSON);
+
+            mockMvc.perform(getRequest)
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("30"));
         }
 }

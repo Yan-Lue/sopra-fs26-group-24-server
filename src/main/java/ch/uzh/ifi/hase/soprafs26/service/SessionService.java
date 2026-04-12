@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.*;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -15,10 +16,6 @@ import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.SessionRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.VoteRepository;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.VotePutDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.MovieResultDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
 import ch.uzh.ifi.hase.soprafs26.service.model.MovieFilters;
 import jakarta.transaction.Transactional;
 
@@ -32,6 +29,7 @@ import java.util.UUID;
 public class SessionService {
 
     private static final int DEFAULT_ROUND_LIMIT = 15;
+    private static final int DEFAULT_TIME_PER_ROUND = 30;
 
     private final SessionRepository sessionRepository;
     private final TmdbService tmdbService;
@@ -53,7 +51,34 @@ public class SessionService {
 
     public Session createSession(Session newSession, String userToken) {
 
-        checkValidSessionCreation(newSession);
+        checkValidSessionCreation(newSession, userToken);
+
+        GuestUser guestHost = null;
+        User userHost = null;
+
+        if (userToken != null && !userToken.isBlank()) {
+            if (userToken.startsWith("Guest")) {
+                guestHost = guestUserRepository.findByToken(userToken);
+                if (guestHost == null) {
+                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest user not found");
+                }
+                newSession.setHostId(guestHost.getId());
+            } else {
+                userHost = userRepository.findByToken(userToken);
+                if (userHost == null) {
+                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found");
+                }
+                newSession.setHostId(userHost.getId());
+            }
+        } else {
+            Long id = newSession.getHostId();
+
+            guestHost = guestUserRepository.findById(id).orElse(null);
+            if (guestHost == null) {
+                userHost = userRepository.findById(id)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Host user not found"));
+            }
+        }
 
         newSession.setRoundLimit(DEFAULT_ROUND_LIMIT);
         newSession.setCurrentMovieIndex(0);
@@ -61,30 +86,21 @@ public class SessionService {
         newSession.setCreationDate(new java.util.Date());
         newSession.setSessionCode(UUID.randomUUID().toString().substring(0, 5));
         newSession.setStatus(SessionStatus.ONLINE);
+        newSession.setTimePerRound(DEFAULT_TIME_PER_ROUND);
         newSession.setSessionToken(UUID.randomUUID().toString());
         newSession.setJoinedUsers(1); // Initialize joined users to 1 since the host is joining
 
         newSession = sessionRepository.save(newSession);
         sessionRepository.flush();
-        // the host user most also have the session linked in the profile
-        Long id = newSession.getHostId();
 
-        if (userToken != null && userToken.startsWith("Guest")) {
-            GuestUser guestUser = guestUserRepository.findById(id)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                            "Guest user with ID " + id + " not found in the database"));
-            guestUser.setCurrentSession(newSession);
-            guestUserRepository.save(guestUser);
+        if (guestHost != null) {
+            guestHost.setCurrentSession(newSession);
+            guestUserRepository.save(guestHost);
             guestUserRepository.flush();
         } else {
-            User user = userRepository.findById(id)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                            "User with ID " + id + " not found in the database"));
-
-            user.setCurrentSession(newSession);
-            userRepository.save(user);
+            userHost.setCurrentSession(newSession);
+            userRepository.save(userHost);
             userRepository.flush();
-
         }
 
         return newSession;
@@ -164,26 +180,22 @@ public class SessionService {
         return session;
     }
 
-    private void checkValidSessionCreation(Session newSession) {
+    private void checkValidSessionCreation(Session newSession, String userToken) {
         String sessionName = newSession.getSessionName();
         Integer maxPlayers = newSession.getMaxPlayers();
         Long hostId = newSession.getHostId();
 
-        if (sessionName == null || sessionName.trim().isEmpty() || maxPlayers == null || hostId == null) {
+        if (sessionName == null || sessionName.trim().isEmpty() || maxPlayers == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create Session");
+        }
+
+        if ((userToken == null || userToken.isBlank()) && hostId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please try logging in again");
         }
     }
 
-    private void broadcastSessionEnded(String sessionCode, String reason, int currentMovieIndex, int totalMovies) {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("type", "SESSION_ENDED");
-        payload.put("sessionCode", sessionCode);
-        payload.put("reason", reason);
-        payload.put("currentMovieIndex", currentMovieIndex);
-        payload.put("totalMovies", totalMovies);
-        payload.put("timestamp", System.currentTimeMillis());
-
-        messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/end", (Object) payload);
+    private void broadcastSessionEnded(String sessionCode) {
+        messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/end", sessionCode);
     }
 
     public Movie getNextMovie(String sessionCode) {
@@ -205,7 +217,7 @@ public class SessionService {
             sessionRepository.save(session);
             sessionRepository.flush();
 
-            broadcastSessionEnded(sessionCode, "NO_MORE_MOVIES", currentMovieIndex == null ? -1 : currentMovieIndex, movieIds.size());
+            broadcastSessionEnded(sessionCode);
             throw new ResponseStatusException(HttpStatus.CONFLICT, "No more movies available in this session");
         }
 
@@ -259,11 +271,13 @@ public class SessionService {
         Session session = getSessionByCode(sessionCode);
 
         int roundLimit = dto.getRoundLimit() == null ? DEFAULT_ROUND_LIMIT : dto.getRoundLimit();
+        int timePerRound = dto.getTimePerRound() == null ? DEFAULT_TIME_PER_ROUND : dto.getTimePerRound();
 
         MovieFilters filters = MovieFilters.fromDTO(dto);
         List<Long> sessionMovieIds = tmdbService.discoverMovieIds(roundLimit, filters);
 
         session.setRoundLimit(roundLimit);
+        session.setTimePerRound(timePerRound);
         session.setCurrentMovieIndex(0);
         session.setSessionMovieIds(sessionMovieIds);
 
@@ -323,9 +337,6 @@ public class SessionService {
             voteRepository.save(vote);
             voteRepository.flush();
         }
-
-        return;
-
     }
 
     public List<MovieResultDTO> calculateFullLeaderboard(String sessionCode) {
@@ -351,5 +362,11 @@ public class SessionService {
         messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/results", results);
 
         return results;
+    }
+
+    public Integer getSessionTiming(String sessionCode) {
+        Session session = getSessionByCode(sessionCode);
+
+        return session.getTimePerRound();
     }
 }
