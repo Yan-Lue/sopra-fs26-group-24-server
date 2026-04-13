@@ -5,6 +5,7 @@ public class SessionGetDTO {
     private String sessionToken;
     private long sessionId;
     private long hostId;
+    private Integer joinedUsers;
 
     public String getSessionCode() {
         return sessionCode;
@@ -36,5 +37,13 @@ public class SessionGetDTO {
 
     public void setHostId(long hostId) {
         this.hostId = hostId;
+    }
+
+    public Integer getJoinedUsers() {
+        return joinedUsers;
+    }
+
+    public void setJoinedUsers(Integer joinedUsers) {
+        this.joinedUsers = joinedUsers;
     }
 }
