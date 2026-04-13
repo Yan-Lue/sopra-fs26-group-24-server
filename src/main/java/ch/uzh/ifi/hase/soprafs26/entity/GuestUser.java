@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 
 import java.io.Serializable;
+import java.time.Instant;
 
 @Entity
 @Table(name = "guest_users")
@@ -32,6 +33,9 @@ public class GuestUser implements Serializable {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus status;
+
+    @Column(nullable = false)
+    private Instant expiresAt;
 
     public Long getId() {
         return id;
@@ -71,5 +75,13 @@ public class GuestUser implements Serializable {
 
     public void setCurrentSession(Session currentSession) {
         this.currentSession = currentSession;
+    }
+
+    public Instant getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(Instant expiresAt) {
+        this.expiresAt = expiresAt;
     }
 }
