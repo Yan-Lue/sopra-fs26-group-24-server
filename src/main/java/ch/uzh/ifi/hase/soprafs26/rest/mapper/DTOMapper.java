@@ -65,6 +65,7 @@ public interface DTOMapper {
 	@Mapping(source = "sessionToken", target = "sessionToken")
 	@Mapping(source = "sessionId", target = "sessionId")
 	@Mapping(source = "hostId", target = "hostId")
+	@Mapping(source = "joinedUsers", target = "joinedUsers")
 	SessionGetDTO convertEntitytoSessionGetDTO(Session createdSession);
 
 	@Mapping(source = "id", target = "movieId")
