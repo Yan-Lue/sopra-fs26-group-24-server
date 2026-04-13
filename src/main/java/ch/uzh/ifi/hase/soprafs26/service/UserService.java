@@ -16,6 +16,8 @@ import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +36,7 @@ public class UserService {
 
 	private final Logger log = LoggerFactory.getLogger(UserService.class);
 
+    private static final long GUEST_TTL = 8;
     private static final String GUEST_USERNAME_PREFIX = "guest_";
     private static final List<String> GUEST_NAMES = Arrays.asList(
             "otter", "panda", "falcon", "lynx", "badger", "koala", "tiger", "rabbit", "beaver", "fox", "walrus", "gecko",
@@ -81,6 +84,7 @@ public class UserService {
 		newGuestUser.setUsername(randomUsername);
 		newGuestUser.setToken("Guest-" + UUID.randomUUID());
 		newGuestUser.setStatus(UserStatus.ONLINE);
+        newGuestUser.setExpiresAt(Instant.now().plus(GUEST_TTL, ChronoUnit.HOURS));
 
 		newGuestUser = guestUserRepository.save(newGuestUser);
 		guestUserRepository.flush();
@@ -112,12 +116,10 @@ public class UserService {
 			existingUser.setName(updatedUser.getName());
 		}
 
-		if (updatedUser.getUsername() != null) {
-			if (!existingUser.getUsername().equals(updatedUser.getUsername())) {
-				checkIfUserExists(updatedUser);
-				existingUser.setUsername(updatedUser.getUsername());
-			}
-		}
+        if ( updatedUser.getUsername() != null && !existingUser.getUsername().equals(updatedUser.getUsername())) {
+            checkIfUserExists(updatedUser);
+            existingUser.setUsername(updatedUser.getUsername());
+        }
 
 		if (updatedUser.getBio() != null) {
 			existingUser.setBio(updatedUser.getBio());
@@ -136,12 +138,10 @@ public class UserService {
 			existingUser.setPassword(hashedNewPassword);
 		}
 
-		if (updatedUser.getEmail() != null) {
-			if (!existingUser.getEmail().equals(updatedUser.getEmail())) {
-				checkIfUserExists(updatedUser);
-				existingUser.setEmail(updatedUser.getEmail());
-			}
-		}
+        if (updatedUser.getEmail() != null && !existingUser.getEmail().equals(updatedUser.getEmail())) {
+            checkIfUserExists(updatedUser);
+            existingUser.setEmail(updatedUser.getEmail());
+        }
 
 		if (status != null && !status.trim().isEmpty()) {
 			try {

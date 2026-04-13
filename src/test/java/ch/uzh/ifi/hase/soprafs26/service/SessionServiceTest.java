@@ -23,9 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -91,7 +89,7 @@ class SessionServiceTest {
                 Mockito.verify(sessionRepository).flush();
 
                 assertEquals(15, createdSession.getRoundLimit());
-                assertEquals(30, createdSession.getTimePerRound());
+                assertEquals(15, createdSession.getTimePerRound());
                 assertEquals(0, createdSession.getCurrentMovieIndex());
                 assertEquals(List.of(), createdSession.getSessionMovieIds());
                 assertEquals(SessionStatus.ONLINE, createdSession.getStatus());
@@ -378,13 +376,13 @@ class SessionServiceTest {
         void getSessionTIming_validSessionCode_returnsTimePerRound() {
             Session storedSession = new Session();
             storedSession.setSessionCode("ABCDE");
-            storedSession.setTimePerRound(30);
+            storedSession.setTimePerRound(15);
 
             Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
 
             Integer result = sessionService.getSessionTiming("ABCDE");
 
-            assertEquals(30, result);
+            assertEquals(15, result);
         }
 
         @Test

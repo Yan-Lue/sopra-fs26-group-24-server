@@ -30,7 +30,7 @@ import java.util.ArrayList;
 public class SessionService {
 
     private static final int DEFAULT_ROUND_LIMIT = 15;
-    private static final int DEFAULT_TIME_PER_ROUND = 30;
+    private static final int DEFAULT_TIME_PER_ROUND = 15;
 
     private final SessionRepository sessionRepository;
     private final TmdbService tmdbService;

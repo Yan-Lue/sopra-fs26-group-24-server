@@ -18,6 +18,9 @@ import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 class UserServiceTest {
@@ -50,6 +53,7 @@ class UserServiceTest {
 		guestTestUser.setUsername("Guest-Random");
 		guestTestUser.setToken("Guest-Token");
 		guestTestUser.setStatus(UserStatus.ONLINE);
+        guestTestUser.setExpiresAt(Instant.now().plus(8, ChronoUnit.HOURS));
 
 		// when -> any object is being save in the userRepository -> return the dummy
 		// testUser
@@ -86,11 +90,13 @@ class UserServiceTest {
 		GuestUser createdGuestUser = userService.createGuestUser();
 
 		Mockito.verify(guestUserRepository, Mockito.times(1)).save(Mockito.any());
+        Mockito.verify(guestUserRepository, Mockito.times(1)).flush();
 
 		assertEquals(guestTestUser.getId(), createdGuestUser.getId());
 		assertEquals(guestTestUser.getUsername(), createdGuestUser.getUsername());
 		assertEquals("Guest-Token", createdGuestUser.getToken());
 		assertEquals(UserStatus.ONLINE, createdGuestUser.getStatus());
+        assertNotNull(createdGuestUser.getExpiresAt());
 	}
 
 	@Test
@@ -172,7 +178,7 @@ class UserServiceTest {
 		assertEquals("new bio", updated.getBio());
 		assertEquals("new@test.com", updated.getEmail());
 		assertEquals(UserStatus.OFFLINE, updated.getStatus());
-		assertEquals(null, updated.getToken());
+        assertNull(updated.getToken());
 		assertTrue(new BCryptPasswordEncoder(12).matches("newPass", updated.getPassword()));
 	}
 
