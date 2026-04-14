@@ -14,5 +14,7 @@ public interface GuestUserRepository extends JpaRepository<GuestUser, Long> {
     GuestUser findByUsername(String name);
 
     long deleteByExpiresAtBefore(Instant now);
+    
+    java.util.List<GuestUser> findAllByCurrentSession(ch.uzh.ifi.hase.soprafs26.entity.Session currentSession);
 
 }

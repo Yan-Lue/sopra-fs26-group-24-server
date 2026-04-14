@@ -174,6 +174,7 @@ public class SessionService {
         Map<String, Object> lobbyUpdate = new HashMap<>();
         lobbyUpdate.put("joinedUsers", session.getJoinedUsers());
         lobbyUpdate.put("maxPlayers", session.getMaxPlayers());
+        lobbyUpdate.put("usernames", getJoinedUsernames(session));
 
         // updated number of users who have already joined the session
         messagingTemplate.convertAndSend((String) ("/topic/session/" + sessionCode + "/lobby"), (Object) lobbyUpdate);
@@ -396,5 +397,18 @@ public class SessionService {
         Session session = getSessionByCode(sessionCode);
 
         return session.getTimePerRound();
+    }
+
+    public List<String> getJoinedUsernames(Session session) {
+        List<String> usernames = new ArrayList<>();
+        List<User> users = userRepository.findAllByCurrentSession(session);
+        for (User user : users) {
+            usernames.add(user.getUsername());
+        }
+        List<GuestUser> guestUsers = guestUserRepository.findAllByCurrentSession(session);
+        for (GuestUser guest : guestUsers) {
+            usernames.add(guest.getUsername());
+        }
+        return usernames;
     }
 }

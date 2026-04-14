@@ -14,4 +14,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 	User findByEmail(String email);
 
 	User findByToken(String token);
+
+	java.util.List<User> findAllByCurrentSession(ch.uzh.ifi.hase.soprafs26.entity.Session currentSession);
 }
