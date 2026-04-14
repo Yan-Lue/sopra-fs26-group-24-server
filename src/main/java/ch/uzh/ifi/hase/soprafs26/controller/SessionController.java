@@ -95,4 +95,10 @@ public class SessionController {
     public Integer getSessionTime(@PathVariable String sessionCode) {
         return sessionService.getSessionTiming(sessionCode);
     }
+
+    @DeleteMapping("/session/{sessionCode}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void leaveSession(@PathVariable String sessionCode, @RequestParam String token) {
+        sessionService.leaveSession(sessionCode, token);
+    }
 }
