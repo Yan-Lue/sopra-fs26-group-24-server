@@ -8,6 +8,9 @@ import ch.uzh.ifi.hase.soprafs26.service.HistoryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @RestController
 public class HistoryController {
 
@@ -24,11 +27,25 @@ public class HistoryController {
     }
 
 
-    @GetMapping("/histories/{historyId}")
+    @GetMapping("/users/{userId}/histories/{historyId}")
     @ResponseStatus(HttpStatus.OK)
-    public HistoryGetDTO getHistory(@PathVariable Long historyId) {
-        History history = historyService.getHistoryByHistoryId(historyId);
+    public HistoryGetDTO getHistory(@PathVariable Long userId, @PathVariable Long historyId) {
+        History history = historyService.getHistoryByHistoryId(userId, historyId);
 
         return DTOMapper.INSTANCE.convertEntityToHistoryGetDTO(history);
+    }
+
+    @GetMapping("/users/{userId}/histories")
+    @ResponseStatus(HttpStatus.OK)
+    public List<HistoryGetDTO> getAllHistoryOfUser(@PathVariable Long userId) {
+
+        List<History> histories = historyService.getHistoriesOfUser(userId);
+        List<HistoryGetDTO> historyGetDTOs = new ArrayList<>();
+
+        for (History history : histories) {
+            historyGetDTOs.add(DTOMapper.INSTANCE.convertEntityToHistoryGetDTO(history));
+        }
+
+        return historyGetDTOs;
     }
 }

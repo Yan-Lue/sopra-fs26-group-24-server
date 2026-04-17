@@ -17,11 +17,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -191,26 +192,73 @@ class HistoryServiceTest {
         history.setSessionCode("ABCDE");
         history.setHistoryId(1L);
 
-        when(historyRepository.findByHistoryId(1L)).thenReturn(history);
+        when(historyRepository.findByUserIdAndHistoryId(7L, 1L)).thenReturn(history);
 
-        History result = historyService.getHistoryByHistoryId(1L);
+        History result = historyService.getHistoryByHistoryId(7L, 1L);
 
         assertEquals(1L, result.getHistoryId());
         assertEquals("ABCDE", result.getSessionCode());
 
-        verify(historyRepository, times(1)).findByHistoryId(1L);
+        verify(historyRepository, times(1)).findByUserIdAndHistoryId(7L, 1L);
     }
 
     @Test
     void getHistoryByHistoryId_invalidId_throwsNotFound() {
-        when(historyRepository.findByHistoryId(1L)).thenReturn(null);
+        when(historyRepository.findByUserIdAndHistoryId(7L, 1L)).thenReturn(null);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> historyService.getHistoryByHistoryId(1L));
+                () -> historyService.getHistoryByHistoryId(7L, 1L));
 
         assertEquals(404, ex.getStatusCode().value());
         assertEquals("History with historyId 1 not found.", ex.getReason());
 
-        verify(historyRepository, times(1)).findByHistoryId(1L);
+        verify(historyRepository, times(1)).findByUserIdAndHistoryId(7L, 1L);
+    }
+
+    @Test
+    void getHistoriesOfUser_validId_returnsHistories() {
+        History history = new History();
+        history.setSessionCode("ABCDE");
+        history.setHistoryId(1L);
+        history.setUserId(7L);
+
+        History history2 = new History();
+        history2.setSessionCode("EDCBA");
+        history2.setHistoryId(2L);
+        history2.setUserId(7L);
+
+        when(historyRepository.findAllByUserId(7L)).thenReturn(Arrays.asList(history, history2));
+
+        List<History> result = historyService.getHistoriesOfUser(7L);
+
+        assertEquals(2, result.size());
+        assertEquals("ABCDE", result.get(0).getSessionCode());
+        assertEquals("EDCBA", result.get(1).getSessionCode());
+        assertEquals(1L, result.get(0).getHistoryId());
+        assertNotNull(result);
+        verify(historyRepository, times(1)).findAllByUserId(7L);
+    }
+
+    @Test
+    void getHistoriesOfUser_nullId_throwsBadRequest() {
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> historyService.getHistoriesOfUser(null));
+
+        assertEquals(400, ex.getStatusCode().value());
+        assertEquals("UserId is required.", ex.getReason());
+    }
+
+    @Test
+    void getHistoriesOfUser_validId_returnsEmptyList() {
+
+        when(historyRepository.findAllByUserId(1L)).thenReturn(Collections.emptyList());
+
+        List<History> result = historyService.getHistoriesOfUser(1L);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+
+        verify(historyRepository, times(1)).findAllByUserId(1L);
     }
 }
