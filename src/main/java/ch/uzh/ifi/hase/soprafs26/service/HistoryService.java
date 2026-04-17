@@ -90,11 +90,19 @@ public class HistoryService {
         return user;
     }
 
-    public History getHistoryByHistoryId(Long historyId) {
-        History history =  historyRepository.findByHistoryId(historyId);
+    public History getHistoryByHistoryId(Long userId, Long historyId) {
+        History history =  historyRepository.findByUserIdAndHistoryId(userId, historyId);
         if (history == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "History with historyId " + historyId + " not found.");
         }
         return history;
+    }
+
+    public List<History> getHistoriesOfUser(Long userId) {
+
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UserId is required.");
+        }
+        return this.historyRepository.findAllByUserId(userId);
     }
 }

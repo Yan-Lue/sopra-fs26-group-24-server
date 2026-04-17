@@ -9,7 +9,7 @@ import java.util.List;
 @Repository("historyRepository")
 public interface HistoryRepository extends JpaRepository<History, Long> {
 
-    History findByHistoryId(Long historyId);
+    History findByUserIdAndHistoryId(Long userId, Long historyId);
 
     List<History> findAllByUserId(Long userId);
 
