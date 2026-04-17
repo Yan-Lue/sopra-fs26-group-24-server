@@ -61,13 +61,13 @@ public class SessionService {
             if (userToken.startsWith("Guest")) {
                 guestHost = guestUserRepository.findByToken(userToken);
                 if (guestHost == null) {
-                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest user not found");
+                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest User not found");
                 }
                 newSession.setHostId(guestHost.getId());
             } else {
                 userHost = userRepository.findByToken(userToken);
                 if (userHost == null) {
-                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found");
+                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
                 }
                 newSession.setHostId(userHost.getId());
             }
@@ -77,7 +77,7 @@ public class SessionService {
             guestHost = guestUserRepository.findById(id).orElse(null);
             if (guestHost == null) {
                 userHost = userRepository.findById(id)
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Host user not found"));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Host User not found"));
             }
         }
 

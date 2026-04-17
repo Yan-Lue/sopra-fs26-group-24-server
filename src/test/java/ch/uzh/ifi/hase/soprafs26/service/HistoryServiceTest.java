@@ -186,6 +186,19 @@ class HistoryServiceTest {
     }
 
     @Test
+    void saveHistory_userInNoSession_throwsForbidden() {
+        user.setCurrentSession(null);
+
+        when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(session);
+        when(userRepository.findByToken("test-token")).thenReturn(user);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> historyService.saveHistory(dto));
+
+        assertEquals(403, ex.getStatusCode().value());
+        assertEquals("User is not part of this session.", ex.getReason());
+    }
+
+    @Test
     void getHistoryByHistoryId_validId_returnsHistory() {
 
         History history = new History();
