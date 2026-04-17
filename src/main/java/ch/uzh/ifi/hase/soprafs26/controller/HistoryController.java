@@ -48,4 +48,10 @@ public class HistoryController {
 
         return historyGetDTOs;
     }
+
+    @DeleteMapping("/users/{userId}/histories/{historyId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteHistoryEntry(@PathVariable Long userId, @PathVariable Long historyId) {
+        historyService.deleteHistory(userId, historyId);
+    }
 }

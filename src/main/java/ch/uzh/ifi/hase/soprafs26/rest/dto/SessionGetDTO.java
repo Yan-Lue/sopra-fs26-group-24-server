@@ -2,12 +2,21 @@ package ch.uzh.ifi.hase.soprafs26.rest.dto;
 import java.util.List;
 
 public class SessionGetDTO {
+    private String sessionName;
     private String sessionCode;
     private String sessionToken;
     private long sessionId;
     private long hostId;
     private Integer joinedUsers;
     private List<String> usernames;
+
+    public String getSessionName() {
+        return sessionName;
+    }
+
+    public void setSessionName(String sessionName) {
+        this.sessionName = sessionName;
+    }
 
     public String getSessionCode() {
         return sessionCode;

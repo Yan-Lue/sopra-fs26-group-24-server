@@ -173,6 +173,7 @@ public class TmdbService {
                 }
 
                 return response.results().stream()
+                                .limit(4)
                                 .map(result -> new SimilarMovie(
                                                 result.id(),
                                                 result.title(),

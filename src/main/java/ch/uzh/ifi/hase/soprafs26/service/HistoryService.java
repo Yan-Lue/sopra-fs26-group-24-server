@@ -1,5 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ch.uzh.ifi.hase.soprafs26.entity.History;
 import ch.uzh.ifi.hase.soprafs26.entity.HistoryMovieEntry;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
@@ -17,6 +19,8 @@ import java.util.List;
 @Service
 @Transactional
 public class HistoryService {
+
+    private final Logger log =  LoggerFactory.getLogger(HistoryService.class);
 
     private final HistoryRepository historyRepository;
     private final SessionRepository sessionRepository;
@@ -104,5 +108,17 @@ public class HistoryService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UserId is required.");
         }
         return this.historyRepository.findAllByUserId(userId);
+    }
+
+    public void deleteHistory(Long userId, Long historyId) {
+        if (historyRepository.existsById(historyId) && userRepository.existsById(userId) &&
+                historyRepository.findByUserIdAndHistoryId(userId, historyId) != null) {
+            historyRepository.deleteById(historyId);
+            historyRepository.flush();
+            log.debug("Deleted history with id: {}", historyId);
+        } else {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "User with UserId " + userId + " has no History with Id " + historyId + ".");
+        }
     }
 }
