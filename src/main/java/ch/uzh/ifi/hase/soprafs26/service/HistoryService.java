@@ -90,5 +90,11 @@ public class HistoryService {
         return user;
     }
 
-
+    public History getHistoryByHistoryId(Long historyId) {
+        History history =  historyRepository.findByHistoryId(historyId);
+        if (history == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "History with historyId " + historyId + " not found.");
+        }
+        return history;
+    }
 }

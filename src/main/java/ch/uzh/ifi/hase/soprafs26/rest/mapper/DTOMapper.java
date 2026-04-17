@@ -1,13 +1,10 @@
 package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
+import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.*;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
-import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
-import ch.uzh.ifi.hase.soprafs26.entity.Session;
-import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.entity.Vote;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import ch.uzh.ifi.hase.soprafs26.service.model.SimilarMovie;
 
@@ -85,4 +82,12 @@ public interface DTOMapper {
 	@Mapping(source = "movieId", target = "movieId")
 	@Mapping(source = "score", target = "score")
 	Vote convertVotePutDTOtoEntity(VotePutDTO votePutDTO);
+
+    @Mapping(source = "historyId", target = "historyId")
+    @Mapping(source = "sessionName", target = "sessionName")
+    @Mapping(source = "sessionCode", target = "sessionCode")
+    @Mapping(source = "joinedUsers", target = "joinedUsers")
+    @Mapping(source = "creationDate", target = "creationDate")
+    @Mapping(source = "movies", target = "movies")
+    HistoryGetDTO convertEntityToHistoryGetDTO(History history);
 }

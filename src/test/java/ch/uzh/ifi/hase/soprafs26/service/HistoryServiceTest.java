@@ -183,4 +183,34 @@ class HistoryServiceTest {
         verify(historyRepository).save(any(History.class));
         verify(historyRepository).flush();
     }
+
+    @Test
+    void getHistoryByHistoryId_validId_returnsHistory() {
+
+        History history = new History();
+        history.setSessionCode("ABCDE");
+        history.setHistoryId(1L);
+
+        when(historyRepository.findByHistoryId(1L)).thenReturn(history);
+
+        History result = historyService.getHistoryByHistoryId(1L);
+
+        assertEquals(1L, result.getHistoryId());
+        assertEquals("ABCDE", result.getSessionCode());
+
+        verify(historyRepository, times(1)).findByHistoryId(1L);
+    }
+
+    @Test
+    void getHistoryByHistoryId_invalidId_throwsNotFound() {
+        when(historyRepository.findByHistoryId(1L)).thenReturn(null);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> historyService.getHistoryByHistoryId(1L));
+
+        assertEquals(404, ex.getStatusCode().value());
+        assertEquals("History with historyId 1 not found.", ex.getReason());
+
+        verify(historyRepository, times(1)).findByHistoryId(1L);
+    }
 }
