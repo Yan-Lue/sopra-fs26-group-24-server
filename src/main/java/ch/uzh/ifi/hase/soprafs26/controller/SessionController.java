@@ -98,7 +98,7 @@ public class SessionController {
 
     @DeleteMapping("/session/{sessionCode}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void leaveSession(@PathVariable String sessionCode, @RequestParam String token) {
-        sessionService.leaveSession(sessionCode, token);
+    public void leaveSession(@PathVariable String sessionCode, @RequestBody SessionPutDTO sessionPutDTO) {
+        sessionService.leaveSession(sessionCode, sessionPutDTO.getToken());
     }
 }

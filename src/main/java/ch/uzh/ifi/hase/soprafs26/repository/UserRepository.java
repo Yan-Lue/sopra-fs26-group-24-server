@@ -4,6 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.entity.Session;
+import java.util.List;
 
 @Repository("userRepository")
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -15,5 +17,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 	User findByToken(String token);
 
-	java.util.List<User> findAllByCurrentSession(ch.uzh.ifi.hase.soprafs26.entity.Session currentSession);
+	List<User> findAllByCurrentSession(Session currentSession);
 }

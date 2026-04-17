@@ -1,4 +1,5 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto;
+import java.util.List;
 
 public class SessionGetDTO {
     private String sessionCode;
@@ -6,7 +7,7 @@ public class SessionGetDTO {
     private long sessionId;
     private long hostId;
     private Integer joinedUsers;
-    private java.util.List<String> usernames;
+    private List<String> usernames;
 
     public String getSessionCode() {
         return sessionCode;
@@ -48,11 +49,11 @@ public class SessionGetDTO {
         this.joinedUsers = joinedUsers;
     }
 
-    public java.util.List<String> getUsernames() {
+    public List<String> getUsernames() {
         return usernames;
     }
 
-    public void setUsernames(java.util.List<String> usernames) {
+    public void setUsernames(List<String> usernames) {
         this.usernames = usernames;
     }
 }
