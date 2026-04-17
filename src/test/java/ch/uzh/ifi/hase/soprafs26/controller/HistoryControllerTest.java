@@ -112,9 +112,9 @@ class HistoryControllerTest {
         history.setUserId(7L);
         history.setMovies(List.of());
 
-        when(historyService.getHistoryByHistoryId(1L)).thenReturn(history);
+        when(historyService.getHistoryByHistoryId(7L, 1L)).thenReturn(history);
 
-        MockHttpServletRequestBuilder getRequest = get("/histories/1")
+        MockHttpServletRequestBuilder getRequest = get("/users/7/histories/1")
                 .contentType(MediaType.APPLICATION_JSON);
 
         mockMvc.perform(getRequest)
@@ -129,10 +129,10 @@ class HistoryControllerTest {
 
     @Test
     void getHistory_unknownSession_returnsNotFound() throws Exception {
-        when(historyService.getHistoryByHistoryId(1L))
+        when(historyService.getHistoryByHistoryId(7L, 1L))
                 .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found."));
 
-        MockHttpServletRequestBuilder getRequest = get("/histories/1");
+        MockHttpServletRequestBuilder getRequest = get("/users/7/histories/1");
 
         mockMvc.perform(getRequest)
                 .andExpect(status().isNotFound());
@@ -141,7 +141,7 @@ class HistoryControllerTest {
     @Test
     void getHistory_invalidId_returnsBadRequest() throws Exception {
 
-        MockHttpServletRequestBuilder getRequest = get("/histories/abc");
+        MockHttpServletRequestBuilder getRequest = get("/users/7/histories/abc");
 
         mockMvc.perform(getRequest)
                 .andExpect(status().isBadRequest());
@@ -162,14 +162,56 @@ class HistoryControllerTest {
         history.setUserId(7L);
         history.setMovies(List.of(entry));
 
-        when(historyService.getHistoryByHistoryId(1L)).thenReturn(history);
+        when(historyService.getHistoryByHistoryId(7L, 1L)).thenReturn(history);
 
-        MockHttpServletRequestBuilder getRequest = get("/histories/1");
+        MockHttpServletRequestBuilder getRequest = get("/users/7/histories/1");
 
         mockMvc.perform(getRequest)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.movies[0].movieId", is(10)))
                 .andExpect(jsonPath("$.movies[0].score", is(5)));
+    }
+
+    @Test
+    void getAllHistoryOfUser_withHistory_returnsJson() throws Exception {
+        HistoryMovieEntry entry = new HistoryMovieEntry();
+        entry.setMovieId(10L);
+        entry.setScore(5);
+
+        History history = new History();
+        history.setSessionCode("ABCDE");
+        history.setHistoryId(1L);
+        history.setCreationDate(new Date());
+        history.setSessionName("Test Round");
+        history.setJoinedUsers(3);
+        history.setUserId(7L);
+        history.setMovies(List.of(entry));
+
+        when(historyService.getHistoriesOfUser(7L)).thenReturn(List.of(history));
+
+        MockHttpServletRequestBuilder getRequest = get("/users/7/histories");
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getAllHistoryOfUser_noHistory_returnsEmptyArray() throws Exception {
+        when(historyService.getHistoriesOfUser(7L)).thenReturn(List.of());
+
+        MockHttpServletRequestBuilder getRequest = get("/users/7/histories");
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void getAllHistoryOfUser_invalidUserId_returnsBadRequest() throws Exception {
+        MockHttpServletRequestBuilder getRequest = get("/users/abc/histories");
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isBadRequest());
     }
 
     private String asJsonString(Object object) {
