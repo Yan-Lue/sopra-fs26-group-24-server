@@ -4,6 +4,7 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
@@ -374,5 +375,18 @@ class SessionControllerTest {
 
                 mockMvc.perform(getRequest)
                 .andExpect(status().isConflict());
+        }
+
+        @Test
+        void leaveSession_validInput_returnsNoContent() throws Exception {
+                SessionPutDTO sessionPutDTO = new SessionPutDTO();
+                sessionPutDTO.setToken("userToken");
+
+                Mockito.doNothing().when(sessionService).leaveSession(eq("test1234"), eq("userToken"));
+
+                mockMvc.perform(delete("/session/test1234")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(sessionPutDTO)))
+                        .andExpect(status().isNoContent());
         }
 }

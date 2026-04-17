@@ -34,7 +34,9 @@ public class SessionController {
 
         Session createdSession = sessionService.createSession(newSession, sessionPostDTO.getToken());
 
-        return DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(createdSession);
+        SessionGetDTO dto = DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(createdSession);
+        dto.setUsernames(sessionService.getJoinedUsernames(createdSession));
+        return dto;
     }
 
     @PutMapping("/session/{sessionCode}")
@@ -43,7 +45,9 @@ public class SessionController {
 
         Session session = sessionService.joinSession(sessionCode, sessionPutDTO);
 
-        return DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(session);
+        SessionGetDTO dto = DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(session);
+        dto.setUsernames(sessionService.getJoinedUsernames(session));
+        return dto;
     }
 
     @GetMapping("/session/{sessionCode}/next")
@@ -90,5 +94,11 @@ public class SessionController {
     @ResponseStatus(HttpStatus.OK)
     public Integer getSessionTime(@PathVariable String sessionCode) {
         return sessionService.getSessionTiming(sessionCode);
+    }
+
+    @DeleteMapping("/session/{sessionCode}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void leaveSession(@PathVariable String sessionCode, @RequestBody SessionPutDTO sessionPutDTO) {
+        sessionService.leaveSession(sessionCode, sessionPutDTO.getToken());
     }
 }

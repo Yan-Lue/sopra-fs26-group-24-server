@@ -491,4 +491,81 @@ class SessionServiceTest {
                 assertEquals(404, exception.getStatusCode().value());
                 assertEquals("Session could not be found.", exception.getReason());
         }
+
+        @Test
+        void leaveSession_unknownSession_throwsNotFound() {
+                Mockito.when(sessionRepository.findSessionBySessionCode("MISSING")).thenReturn(null);
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> sessionService.leaveSession("MISSING", "someToken"));
+
+                assertEquals(404, exception.getStatusCode().value());
+                assertEquals("Session could not be found.", exception.getReason());
+        }
+
+        @Test
+        void leaveSession_unknownGuestUser_throwsNotFound() {
+                Session session = new Session();
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(session);
+                Mockito.when(guestUserRepository.findByToken("GuestToken")).thenReturn(null);
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> sessionService.leaveSession("ABCDE", "GuestToken"));
+
+                assertEquals(404, exception.getStatusCode().value());
+                assertEquals("Guest user not found", exception.getReason());
+        }
+
+        @Test
+        void leaveSession_hostLeaves_setsOfflineAndBroadcastsEnd() {
+                Session session = new Session();
+                session.setSessionId(1L);
+                session.setSessionCode("ABCDE");
+                session.setHostId(10L);
+                session.setStatus(SessionStatus.ONLINE);
+
+                User user = new User();
+                user.setId(10L);
+                user.setCurrentSession(session);
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(session);
+                Mockito.when(userRepository.findByToken("HostToken")).thenReturn(user);
+
+                sessionService.leaveSession("ABCDE", "HostToken");
+
+                assertEquals(SessionStatus.OFFLINE, session.getStatus());
+                assertNull(user.getCurrentSession());
+                Mockito.verify(sessionRepository).save(session);
+                Mockito.verify(userRepository).save(user);
+                Mockito.verify(messagingTemplate).convertAndSend("/topic/session/ABCDE/end", "ABCDE");
+        }
+
+        @Test
+        void leaveSession_guestParticipantLeaves_decrementsCountAndBroadcastsLobbyUpdate() {
+                Session session = new Session();
+                session.setSessionId(1L);
+                session.setSessionCode("ABCDE");
+                session.setHostId(10L);
+                session.setJoinedUsers(3);
+                session.setMaxPlayers(10);
+
+                GuestUser guest = new GuestUser();
+                guest.setId(22L);
+                guest.setCurrentSession(session);
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(session);
+                Mockito.when(guestUserRepository.findByToken("GuestToken")).thenReturn(guest);
+                Mockito.when(userRepository.findAllByCurrentSession(session)).thenReturn(List.of());
+                Mockito.when(guestUserRepository.findAllByCurrentSession(session)).thenReturn(List.of());
+
+                sessionService.leaveSession("ABCDE", "GuestToken");
+
+                assertEquals(2, session.getJoinedUsers());
+                assertNull(guest.getCurrentSession());
+                Mockito.verify(sessionRepository).save(session);
+                Mockito.verify(guestUserRepository).save(guest);
+                Mockito.verify(messagingTemplate).convertAndSend(Mockito.eq("/topic/session/ABCDE/lobby"), Mockito.<Object>any());
+        }
 }

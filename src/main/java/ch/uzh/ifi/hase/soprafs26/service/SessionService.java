@@ -174,11 +174,72 @@ public class SessionService {
         Map<String, Object> lobbyUpdate = new HashMap<>();
         lobbyUpdate.put("joinedUsers", session.getJoinedUsers());
         lobbyUpdate.put("maxPlayers", session.getMaxPlayers());
+        lobbyUpdate.put("usernames", getJoinedUsernames(session));
 
         // updated number of users who have already joined the session
         messagingTemplate.convertAndSend((String) ("/topic/session/" + sessionCode + "/lobby"), (Object) lobbyUpdate);
 
         return session;
+    }
+
+    public void leaveSession(String sessionCode, String userToken) {
+        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
+
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
+        }
+
+        Long expectedId;
+        boolean isGuest = userToken.startsWith("Guest");
+
+        if (isGuest) {
+            GuestUser guestUser = guestUserRepository.findByToken(userToken);
+            if (guestUser == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest user not found");
+            }
+            expectedId = guestUser.getId();
+            
+            // Remove from session
+            if (guestUser.getCurrentSession() != null && guestUser.getCurrentSession().getSessionId().equals(session.getSessionId())) {
+                guestUser.setCurrentSession(null);
+                guestUserRepository.save(guestUser);
+                guestUserRepository.flush();
+            }
+        } else {
+            User user = userRepository.findByToken(userToken);
+            if (user == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+            }
+            expectedId = user.getId();
+            
+            // Remove from session
+            if (user.getCurrentSession() != null && user.getCurrentSession().getSessionId().equals(session.getSessionId())) {
+                user.setCurrentSession(null);
+                userRepository.save(user);
+                userRepository.flush();
+            }
+        }
+
+        if (session.getHostId().equals(expectedId)) {
+            session.setStatus(SessionStatus.OFFLINE);
+            sessionRepository.save(session);
+            sessionRepository.flush();
+            broadcastSessionEnded(sessionCode);
+        } else {
+            int currentJoined = session.getJoinedUsers();
+            if (currentJoined > 1) {
+                session.setJoinedUsers(currentJoined - 1);
+                sessionRepository.save(session);
+                sessionRepository.flush();
+            }
+
+            Map<String, Object> lobbyUpdate = new HashMap<>();
+            lobbyUpdate.put("joinedUsers", session.getJoinedUsers());
+            lobbyUpdate.put("maxPlayers", session.getMaxPlayers());
+            lobbyUpdate.put("usernames", getJoinedUsernames(session));
+
+            messagingTemplate.convertAndSend((String)("/topic/session/" + sessionCode + "/lobby"), (Object) lobbyUpdate);
+        }
     }
 
     private void checkValidSessionCreation(Session newSession, String userToken) {
@@ -396,5 +457,18 @@ public class SessionService {
         Session session = getSessionByCode(sessionCode);
 
         return session.getTimePerRound();
+    }
+
+    public List<String> getJoinedUsernames(Session session) {
+        List<String> usernames = new ArrayList<>();
+        List<User> users = userRepository.findAllByCurrentSession(session);
+        for (User user : users) {
+            usernames.add(user.getUsername());
+        }
+        List<GuestUser> guestUsers = guestUserRepository.findAllByCurrentSession(session);
+        for (GuestUser guest : guestUsers) {
+            usernames.add(guest.getUsername());
+        }
+        return usernames;
     }
 }

@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.List;
+import ch.uzh.ifi.hase.soprafs26.entity.Session;
 
 @Repository("guestUserRepository")
 public interface GuestUserRepository extends JpaRepository<GuestUser, Long> {
@@ -14,5 +16,7 @@ public interface GuestUserRepository extends JpaRepository<GuestUser, Long> {
     GuestUser findByUsername(String name);
 
     long deleteByExpiresAtBefore(Instant now);
+    
+    List<GuestUser> findAllByCurrentSession(Session currentSession);
 
 }
