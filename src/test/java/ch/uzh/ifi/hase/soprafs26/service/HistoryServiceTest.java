@@ -209,7 +209,7 @@ class HistoryServiceTest {
                 () -> historyService.getHistoryByHistoryId(1L));
 
         assertEquals(404, ex.getStatusCode().value());
-        assertEquals("History not found.", ex.getReason());
+        assertEquals("History with historyId 1 not found.", ex.getReason());
 
         verify(historyRepository, times(1)).findByHistoryId(1L);
     }
