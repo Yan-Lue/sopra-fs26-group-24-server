@@ -274,4 +274,55 @@ class HistoryServiceTest {
 
         verify(historyRepository, times(1)).findAllByUserId(1L);
     }
+
+    @Test
+    void deleteHistory_success() {
+
+        when(userRepository.existsById(7L)).thenReturn(true);
+        when(historyRepository.existsById(10L)).thenReturn(true);
+        when(historyRepository.findByUserIdAndHistoryId(7L, 10L)).thenReturn(new History());
+
+        assertDoesNotThrow(() -> historyService.deleteHistory(7L, 10L));
+
+        verify(historyRepository).deleteById(10L);
+        verify(historyRepository).flush();
+    }
+
+    @Test
+    void deleteHistory_userDoesNotExist_throwsNotFound() {
+
+        when(historyRepository.existsById(10L)).thenReturn(true);
+        when(userRepository.existsById(7L)).thenReturn(false);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> historyService.deleteHistory(7L, 10L));
+
+        assertEquals(404, ex.getStatusCode().value());
+        verify(historyRepository, never()).deleteById(anyLong());
+    }
+
+    @Test
+    void deleteHistory_historyDoesNotExist_throwsNotFound() {
+
+        when(historyRepository.existsById(10L)).thenReturn(false);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> historyService.deleteHistory(7L, 10L));
+
+        assertEquals(404, ex.getStatusCode().value());
+        verify(historyRepository, never()).deleteById(anyLong());
+    }
+
+    @Test
+    void deleteHistory_historyNotlinkedToUser_throwsNotFound() {
+        when(userRepository.existsById(7L)).thenReturn(true);
+        when(historyRepository.existsById(10L)).thenReturn(true);
+        when(historyRepository.findByUserIdAndHistoryId(7L, 10L)).thenReturn(null);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> historyService.deleteHistory(7L, 10L));
+
+        assertEquals(404, ex.getStatusCode().value());
+        verify(historyRepository, never()).deleteById(anyLong());
+    }
 }

@@ -50,6 +50,10 @@ public class SessionService {
         this.messagingTemplate = messagingTemplate;
     }
 
+    public static String topic(String sessionCode) {
+        return "/topic/session/" + sessionCode;
+    }
+
     public Session createSession(Session newSession, String userToken) {
 
         checkValidSessionCreation(newSession, userToken);
@@ -158,26 +162,13 @@ public class SessionService {
         sessionRepository.save(session);
         sessionRepository.flush();
 
-        // I suggest that we do the regular PUT fetch to join and the join handling
-        // inside the database is done
-        // Then when the frontend receives the OK, it subscribes to the topic and waits
-        // for the next movie to be pushed, which happens in the line below when the
-        // host clicks "Start Session"
-
-        // The frontend needs to first connect to the websocket enpoint:
-        // ws://<our-server>/gs-guide-websocket
-        // Then it must subscribe to the topic: /topic/session/{sessionCode}/lobby and
-        // /topic/session/{sessionCode}/next to receive the current number of players
-        // who have joined and the movie details when the host
-        // starts the session and every time they click "Next"
-
         Map<String, Object> lobbyUpdate = new HashMap<>();
         lobbyUpdate.put("joinedUsers", session.getJoinedUsers());
         lobbyUpdate.put("maxPlayers", session.getMaxPlayers());
         lobbyUpdate.put("usernames", getJoinedUsernames(session));
 
         // updated number of users who have already joined the session
-        messagingTemplate.convertAndSend((String) ("/topic/session/" + sessionCode + "/lobby"), (Object) lobbyUpdate);
+        messagingTemplate.convertAndSend((topic(sessionCode) + "/lobby"), (Object) lobbyUpdate);
 
         return session;
     }
@@ -238,7 +229,7 @@ public class SessionService {
             lobbyUpdate.put("maxPlayers", session.getMaxPlayers());
             lobbyUpdate.put("usernames", getJoinedUsernames(session));
 
-            messagingTemplate.convertAndSend((String)("/topic/session/" + sessionCode + "/lobby"), (Object) lobbyUpdate);
+            messagingTemplate.convertAndSend((topic(sessionCode) + "/lobby"), (Object) lobbyUpdate);
         }
     }
 
@@ -257,7 +248,7 @@ public class SessionService {
     }
 
     private void broadcastSessionEnded(String sessionCode) {
-        messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/end", sessionCode);
+        messagingTemplate.convertAndSend(topic(sessionCode) + "/end", sessionCode);
     }
 
     public Movie getNextMovie(String sessionCode) {
@@ -294,7 +285,7 @@ public class SessionService {
 
         // IMPORTANT: the frontend needs to subscribe to the topic
         // "/topic/session/{sessionCode}/next" to receive the movie details when this
-        messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/next", movie);
+        messagingTemplate.convertAndSend(topic(sessionCode) + "/next", movie);
 
         return movie;
     }
@@ -448,7 +439,7 @@ public class SessionService {
 
         // IMPORTANT: the frontend needs to subscribe to the topic
         // "/topic/session/{sessionCode}/results" to receive the movie results
-        messagingTemplate.convertAndSend("/topic/session/" + sessionCode + "/results", results);
+        messagingTemplate.convertAndSend(topic(sessionCode) + "/results", results);
 
         return results;
     }
