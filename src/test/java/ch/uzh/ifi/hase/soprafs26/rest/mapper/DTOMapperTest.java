@@ -1,21 +1,19 @@
 package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
-import ch.uzh.ifi.hase.soprafs26.rest.dto.MovieGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.SimilarMovieGetDTO;
+import ch.uzh.ifi.hase.soprafs26.entity.History;
+import ch.uzh.ifi.hase.soprafs26.entity.HistoryMovieEntry;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.*;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import ch.uzh.ifi.hase.soprafs26.service.model.SimilarMovie;
 import org.junit.jupiter.api.Test;
 
 import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
 
+import java.util.Date;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * DTOMapperTest
@@ -112,5 +110,48 @@ class DTOMapperTest {
         assertEquals("https://image.tmdb.org/t/p/w500/se7en.jpg", similarMovieGetDTO.getPosterPath());
         assertEquals(8.3, similarMovieGetDTO.getRating());
         assertEquals("1995-09-22", similarMovieGetDTO.getReleaseDate());
+    }
+
+    @Test
+    void convertEntityToHistoryGetDTO_validInput_mapsCorrectly() {
+
+        History history = new History();
+        history.setHistoryId(1L);
+        history.setSessionName("Test Round");
+        history.setSessionCode("ABCDE");
+        history.setJoinedUsers(3);
+        history.setCreationDate(new Date());
+        history.setUserId(7L);
+        history.setMovies(List.of());
+
+        HistoryGetDTO dto = DTOMapper.INSTANCE.convertEntityToHistoryGetDTO(history);
+
+        assertEquals(1L, dto.getHistoryId());
+        assertEquals("Test Round", dto.getSessionName());
+        assertEquals("ABCDE", dto.getSessionCode());
+        assertEquals(3, dto.getJoinedUsers());
+        assertEquals(7L, dto.getUserId());
+        assertEquals(history.getCreationDate(), dto.getCreationDate());
+        assertNotNull(dto.getMovies());
+        assertTrue(dto.getMovies().isEmpty());
+    }
+
+    @Test
+    void convertEntityToHistoryGetDTO_withMovies_mapsMoviesCorrectly() {
+
+        HistoryMovieEntry entry = new HistoryMovieEntry();
+        entry.setMovieId(10L);
+        entry.setScore(5);
+
+        History history = new History();
+        history.setHistoryId(1L);
+        history.setMovies(List.of(entry));
+
+        HistoryGetDTO dto = DTOMapper.INSTANCE.convertEntityToHistoryGetDTO(history);
+
+        assertNotNull(dto.getMovies());
+        assertEquals(1, dto.getMovies().size());
+        assertEquals(10L, dto.getMovies().get(0).getMovieId());
+        assertEquals(5, dto.getMovies().get(0).getScore());
     }
 }
