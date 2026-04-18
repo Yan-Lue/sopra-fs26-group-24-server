@@ -379,14 +379,10 @@ class SessionControllerTest {
 
         @Test
         void leaveSession_validInput_returnsNoContent() throws Exception {
-                SessionPutDTO sessionPutDTO = new SessionPutDTO();
-                sessionPutDTO.setToken("userToken");
-
                 Mockito.doNothing().when(sessionService).leaveSession(eq("test1234"), eq("userToken"));
 
                 mockMvc.perform(delete("/session/test1234")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(asJsonString(sessionPutDTO)))
+                        .header("Authorization", "userToken"))
                         .andExpect(status().isNoContent());
         }
 }
