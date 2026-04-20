@@ -5,6 +5,8 @@ import ch.uzh.ifi.hase.soprafs26.entity.HistoryMovieEntry;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.HistoryPostDTO;
 import ch.uzh.ifi.hase.soprafs26.service.HistoryService;
+import ch.uzh.ifi.hase.soprafs26.service.TmdbService;
+import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -38,6 +40,9 @@ class HistoryControllerTest {
 
     @MockitoBean
     private HistoryService historyService;
+
+    @MockitoBean
+    private TmdbService tmdbService;
 
     private HistoryPostDTO historyPostDTO;
 
@@ -140,6 +145,20 @@ class HistoryControllerTest {
 
         mockMvc.perform(getRequest)
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getMovieById_returnsMovie() throws Exception {
+        Movie movie = new Movie(10L, "Inception", "desc", "path", 5.0, "2010", List.of(), List.of());
+
+        when(tmdbService.getMovieDetails(10L)).thenReturn(movie);
+
+        MockHttpServletRequestBuilder getRequest = get("/movies/10");
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.movieId", is(10)))
+                .andExpect(jsonPath("$.title", is("Inception")));
     }
 
     @Test

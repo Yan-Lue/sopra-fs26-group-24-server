@@ -3,8 +3,11 @@ package ch.uzh.ifi.hase.soprafs26.controller;
 import ch.uzh.ifi.hase.soprafs26.entity.History;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.HistoryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.HistoryPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.MovieGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.HistoryService;
+import ch.uzh.ifi.hase.soprafs26.service.TmdbService;
+import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,9 +18,18 @@ import java.util.List;
 public class HistoryController {
 
     private final HistoryService historyService;
+    private final TmdbService tmdbService;
 
-    public HistoryController(HistoryService historyService) {
+    public HistoryController(HistoryService historyService, TmdbService tmdbService) {
         this.historyService = historyService;
+        this.tmdbService = tmdbService;
+    }
+
+    @GetMapping("/movies/{movieId}")
+    @ResponseStatus(HttpStatus.OK)
+    public MovieGetDTO getMovieById(@PathVariable Long movieId) {
+        Movie movie = tmdbService.getMovieDetails(movieId);
+        return DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
     }
 
     @PostMapping("/histories")
@@ -25,7 +37,6 @@ public class HistoryController {
     public void saveHistory(@RequestBody HistoryPostDTO historyPostDTO) {
         historyService.saveHistory(historyPostDTO);
     }
-
 
     @GetMapping("/users/{userId}/histories/{historyId}")
     @ResponseStatus(HttpStatus.OK)
