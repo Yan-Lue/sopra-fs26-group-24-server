@@ -53,6 +53,9 @@ public class Session implements Serializable {
     @Column(nullable = false)
     private Integer timePerRound;
 
+    @Column(nullable = false)
+    private Integer votesReceivedThisRound; 
+
     @ElementCollection
     @CollectionTable(name = "session_session_movie_id", joinColumns = @JoinColumn(name = "session_id"))
     @Column(name = "movie_id", nullable = false)
@@ -161,4 +164,14 @@ public class Session implements Serializable {
     public void setSessionMovieIds(List<Long> sessionMovieIds) {
         this.sessionMovieIds = sessionMovieIds;
     }
+
+    public Integer getVotesReceivedThisRound() {
+        return votesReceivedThisRound;
+    }
+
+    public void setVotesReceivedThisRound(Integer votesReceivedThisRound) {
+        this.votesReceivedThisRound = votesReceivedThisRound;
+    }
+
+    //increment and reset round votes
 }

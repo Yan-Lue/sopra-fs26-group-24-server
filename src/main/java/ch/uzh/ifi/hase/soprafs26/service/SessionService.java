@@ -94,6 +94,7 @@ public class SessionService {
         newSession.setTimePerRound(DEFAULT_TIME_PER_ROUND);
         newSession.setSessionToken(UUID.randomUUID().toString());
         newSession.setJoinedUsers(1); // Initialize joined users to 1 since the host is joining
+        newSession.setVotesReceivedThisRound(0);
 
         newSession = sessionRepository.save(newSession);
         sessionRepository.flush();
@@ -253,6 +254,14 @@ public class SessionService {
         messagingTemplate.convertAndSend(topic(sessionCode) + "/end", sessionCode);
     }
 
+    private void broadcastVoteProgress(String sessionCode, Integer votesReceived, Integer joinedUsers) {
+        Map<String, Object> voteProgressPayload = new HashMap<>();
+        //added ternary checks to avoid null values, should not occur but better safe than sorry
+        voteProgressPayload.put("votesReceived", votesReceived == null ? 0 : votesReceived);
+        voteProgressPayload.put("joinedUsers", joinedUsers == null ? 0 : joinedUsers);
+        messagingTemplate.convertAndSend((topic(sessionCode) + "/vote-progress"), (Object) voteProgressPayload);
+    }
+
     @Transactional
     public Movie getNextMovie(String sessionCode) {
         Session session = sessionRepository.findSessionBySessionCode(sessionCode);
@@ -394,6 +403,30 @@ public class SessionService {
             vote.setScore(votePutDTO.getScore());
             voteRepository.save(vote);
             voteRepository.flush();
+        }
+
+            Integer votesReceived = voteRepository
+                .countBySessionCodeAndMovieId(votePutDTO.getSessionCode(), votePutDTO.getMovieId())
+                .intValue();
+            session.setVotesReceivedThisRound(votesReceived);
+        sessionRepository.save(session);
+        sessionRepository.flush();
+        
+        broadcastVoteProgress(
+                votePutDTO.getSessionCode(),
+                votesReceived,
+                session.getJoinedUsers());
+
+        Integer joinedUsers = session.getJoinedUsers();
+
+            if (joinedUsers != null && votesReceived >= joinedUsers) {
+            // All users have voted - proceed to next movie
+            session.setVotesReceivedThisRound(0); // Reset for next round
+            sessionRepository.save(session);
+            sessionRepository.flush();
+
+            broadcastVoteProgress(votePutDTO.getSessionCode(), 0, session.getJoinedUsers());
+            getNextMovie(votePutDTO.getSessionCode());
         }
     }
 
