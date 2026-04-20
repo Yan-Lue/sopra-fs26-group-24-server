@@ -29,8 +29,9 @@ public class History implements Serializable {
     @Column(nullable = false)
     private Date creationDate;
 
-    @Column(nullable = false)
-    private Long userId;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @SuppressWarnings("java:S1948")
     @ElementCollection
@@ -77,12 +78,12 @@ public class History implements Serializable {
         this.creationDate = creationDate;
     }
 
-    public Long getUserId() {
-        return userId;
+    public User getUser() {
+        return user;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public List<HistoryMovieEntry> getMovies() {

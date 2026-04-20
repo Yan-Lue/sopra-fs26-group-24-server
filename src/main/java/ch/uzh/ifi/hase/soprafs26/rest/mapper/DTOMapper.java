@@ -89,5 +89,6 @@ public interface DTOMapper {
     @Mapping(source = "joinedUsers", target = "joinedUsers")
     @Mapping(source = "creationDate", target = "creationDate")
     @Mapping(source = "movies", target = "movies")
+    @Mapping(source = "user.id", target = "userId")
     HistoryGetDTO convertEntityToHistoryGetDTO(History history);
 }

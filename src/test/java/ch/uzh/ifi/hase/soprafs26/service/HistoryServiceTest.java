@@ -84,7 +84,7 @@ class HistoryServiceTest {
         assertEquals("Test Round", saved.getSessionName());
         assertEquals("ABCDE", saved.getSessionCode());
         assertEquals(3, saved.getJoinedUsers());
-        assertEquals(7L, saved.getUserId());
+        assertEquals(user, saved.getUser());
         assertEquals(2, saved.getMovies().size());
         assertEquals(10L, saved.getMovies().get(0).getMovieId());
         assertEquals(4, saved.getMovies().get(0).getScore());
@@ -233,12 +233,12 @@ class HistoryServiceTest {
         History history = new History();
         history.setSessionCode("ABCDE");
         history.setHistoryId(1L);
-        history.setUserId(7L);
+        history.setUser(user);
 
         History history2 = new History();
         history2.setSessionCode("EDCBA");
         history2.setHistoryId(2L);
-        history2.setUserId(7L);
+        history2.setUser(user);
 
         when(historyRepository.findAllByUserId(7L)).thenReturn(Arrays.asList(history, history2));
 

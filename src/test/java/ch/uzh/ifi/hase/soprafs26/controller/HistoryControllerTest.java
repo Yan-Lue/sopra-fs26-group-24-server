@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.entity.History;
 import ch.uzh.ifi.hase.soprafs26.entity.HistoryMovieEntry;
+import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.HistoryPostDTO;
 import ch.uzh.ifi.hase.soprafs26.service.HistoryService;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,13 +104,16 @@ class HistoryControllerTest {
     @Test
     void getHistory_validInput_returnsJsonObject() throws Exception {
 
+        User user = new User();
+        user.setId(7L);
+
         History history = new History();
         history.setSessionCode("ABCDE");
         history.setHistoryId(1L);
         history.setCreationDate(new Date());
         history.setSessionName("Test Round");
         history.setJoinedUsers(3);
-        history.setUserId(7L);
+        history.setUser(user);
         history.setMovies(List.of());
 
         when(historyService.getHistoryByHistoryId(7L, 1L)).thenReturn(history);
@@ -159,7 +163,7 @@ class HistoryControllerTest {
         history.setCreationDate(new Date());
         history.setSessionName("Test Round");
         history.setJoinedUsers(3);
-        history.setUserId(7L);
+        history.setUser(new User());
         history.setMovies(List.of(entry));
 
         when(historyService.getHistoryByHistoryId(7L, 1L)).thenReturn(history);
@@ -184,7 +188,7 @@ class HistoryControllerTest {
         history.setCreationDate(new Date());
         history.setSessionName("Test Round");
         history.setJoinedUsers(3);
-        history.setUserId(7L);
+        history.setUser(new User());
         history.setMovies(List.of(entry));
 
         when(historyService.getHistoriesOfUser(7L)).thenReturn(List.of(history));
