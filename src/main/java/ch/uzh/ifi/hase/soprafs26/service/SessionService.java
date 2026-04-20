@@ -26,7 +26,6 @@ import java.util.UUID;
 import java.util.ArrayList;
 
 @Service
-@Transactional
 public class SessionService {
 
     private static final int DEFAULT_ROUND_LIMIT = 15;
@@ -54,6 +53,7 @@ public class SessionService {
         return "/topic/session/" + sessionCode;
     }
 
+    @Transactional
     public Session createSession(Session newSession, String userToken) {
 
         checkValidSessionCreation(newSession, userToken);
@@ -131,6 +131,7 @@ public class SessionService {
         return session;
     }
 
+    @Transactional
     public Session joinSession(String sessionCode, SessionPutDTO sessionPutDTO) {
         Session session = getSessionByCode(sessionCode);
 
@@ -173,6 +174,7 @@ public class SessionService {
         return session;
     }
 
+    @Transactional
     public void leaveSession(String sessionCode, String userToken) {
         Session session = sessionRepository.findSessionBySessionCode(sessionCode);
 
@@ -251,6 +253,7 @@ public class SessionService {
         messagingTemplate.convertAndSend(topic(sessionCode) + "/end", sessionCode);
     }
 
+    @Transactional
     public Movie getNextMovie(String sessionCode) {
         Session session = sessionRepository.findSessionBySessionCode(sessionCode);
 
@@ -320,6 +323,7 @@ public class SessionService {
         return tmdbService.getMovieDetails(movieId);
     }
 
+    @Transactional
     public Session updateSessionFilters(String sessionCode, SessionFilterPutDTO dto) {
         Session session = getSessionByCode(sessionCode);
 
@@ -340,6 +344,7 @@ public class SessionService {
         return session;
     }
 
+    @Transactional
     public void setVote(VotePutDTO votePutDTO) {
 
         // first we check if the session exists:

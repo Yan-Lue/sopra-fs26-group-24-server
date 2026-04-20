@@ -55,7 +55,7 @@ public class HistoryService {
         newHistory.setSessionCode(session.getSessionCode());
         newHistory.setJoinedUsers(session.getJoinedUsers());
         newHistory.setCreationDate(session.getCreationDate());
-        newHistory.setUserId(user.getId());
+        newHistory.setUser(user);
 
         List<HistoryMovieEntry> entries = new ArrayList<>();
         for (Long movieId : session.getSessionMovieIds()) {

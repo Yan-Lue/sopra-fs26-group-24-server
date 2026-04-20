@@ -115,13 +115,16 @@ class DTOMapperTest {
     @Test
     void convertEntityToHistoryGetDTO_validInput_mapsCorrectly() {
 
+        User user = new User();
+        user.setId(7L);
+
         History history = new History();
         history.setHistoryId(1L);
         history.setSessionName("Test Round");
         history.setSessionCode("ABCDE");
         history.setJoinedUsers(3);
         history.setCreationDate(new Date());
-        history.setUserId(7L);
+        history.setUser(user);
         history.setMovies(List.of());
 
         HistoryGetDTO dto = DTOMapper.INSTANCE.convertEntityToHistoryGetDTO(history);
