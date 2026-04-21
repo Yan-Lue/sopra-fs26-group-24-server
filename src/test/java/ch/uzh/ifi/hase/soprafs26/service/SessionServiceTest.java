@@ -189,7 +189,7 @@ class SessionServiceTest {
         }
 
         @Test
-        void getNextMovie_validSession_returnsMovieAndAdvancesIndex() {
+        void getNextMovie_validSession_resetsVoteProgress() {
                 Session storedSession = new Session();
                 storedSession.setSessionId(1L);
                 storedSession.setCurrentMovieIndex(0);
@@ -218,7 +218,44 @@ class SessionServiceTest {
                 verify(tmdbService, Mockito.times(1)).getMovieDetails(55L);
                 verify(sessionRepository, Mockito.times(1)).save(storedSession);
                 verify(sessionRepository, Mockito.times(1)).flush();
-                verify(messagingTemplate).convertAndSend("/topic/session/1/next", movie);
+                verify(messagingTemplate).convertAndSend(
+                        Mockito.eq("/topic/session/1/vote-progress"),
+                        Mockito.any(Object.class));
+        }
+
+        @Test
+        void getNextMovie_validSession_broadcastsNextMovie() {
+                Session storedSession = new Session();
+                storedSession.setSessionId(1L);
+                storedSession.setCurrentMovieIndex(0);
+                storedSession.setSessionMovieIds(List.of(55L, 66L));
+
+                Movie movie = new Movie(
+                                55L,
+                                "Fight Club",
+                                "desc",
+                                "/poster.jpg",
+                                8.8,
+                                "1999-10-15",
+                                List.of("Drama"),
+                                List.of(new SimilarMovie(66L, "Se7en", "/poster2.jpg", 8.3, "1995-09-22")));
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
+                Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+                Mockito.when(tmdbService.getMovieDetails(55L)).thenReturn(movie);
+                Mockito.doNothing().when(messagingTemplate).convertAndSend(Mockito.anyString(), Mockito.<Object>any());
+
+                Movie result = sessionService.getNextMovie("1");
+
+                assertEquals(movie, result);
+                assertEquals(1, storedSession.getCurrentMovieIndex());
+                verify(tmdbService, Mockito.times(1)).getMovieDetails(55L);
+                verify(sessionRepository, Mockito.times(1)).save(storedSession);
+                verify(sessionRepository, Mockito.times(1)).flush();
+                verify(messagingTemplate).convertAndSend(
+                        Mockito.eq("/topic/session/1/next"),
+                        Mockito.any(Object.class));
         }
 
         @Test
@@ -761,5 +798,183 @@ class SessionServiceTest {
 
             assertEquals(1, existing.getScore());
             verify(voteRepository).save(existing);
+        }
+
+        @Test
+        void vote_allUsersVoted_resetsVoteCount() {
+            Session session = new Session();
+            session.setSessionId(1L);
+            session.setSessionCode("ABCDE");
+            session.setSessionMovieIds(List.of(55L, 66L));
+            session.setCurrentMovieIndex(0);
+            session.setJoinedUsers(2);
+            session.setVotesReceivedThisRound(0);
+
+            User user = new User();
+            user.setId(1L);
+            user.setCurrentSession(session);
+
+            Movie movie = new Movie(
+                    55L,
+                    "Fight Club",
+                    "desc",
+                    "/poster.jpg",
+                    8.8,
+                    "1999-10-15",
+                    List.of("Drama"),
+                    List.of());
+
+            VotePutDTO dto = new VotePutDTO();
+            dto.setSessionCode("ABCDE");
+            dto.setToken("token");
+            dto.setMovieId(55L);
+            dto.setUserId(1L);
+            dto.setScore(1);
+
+            Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(session);
+            Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+            Mockito.when(userRepository.findByToken("token")).thenReturn(user);
+            Mockito.when(voteRepository.findBySessionCodeAndUserIdAndMovieId("ABCDE", 1L, 55L))
+                    .thenReturn(null);
+            Mockito.when(voteRepository.countBySessionCodeAndMovieId("ABCDE", 55L)).thenReturn(2L);
+            Mockito.when(tmdbService.getMovieDetails(55L)).thenReturn(movie);
+
+            sessionService.setVote(dto);
+
+            assertEquals(0, session.getVotesReceivedThisRound());
+            verify(messagingTemplate, Mockito.atLeastOnce()).convertAndSend(
+                    Mockito.eq("/topic/session/ABCDE/vote-progress"),
+                    Mockito.any(Object.class));
+        }
+
+        @Test
+        void vote_allUsersVoted_advancesToNextMovie() {
+            Session session = new Session();
+            session.setSessionId(1L);
+            session.setSessionCode("ABCDE");
+            session.setSessionMovieIds(List.of(55L, 66L));
+            session.setCurrentMovieIndex(0);
+            session.setJoinedUsers(2);
+            session.setVotesReceivedThisRound(0);
+
+            User user = new User();
+            user.setId(1L);
+            user.setCurrentSession(session);
+
+            Movie movie = new Movie(
+                    55L,
+                    "Fight Club",
+                    "desc",
+                    "/poster.jpg",
+                    8.8,
+                    "1999-10-15",
+                    List.of("Drama"),
+                    List.of());
+
+            VotePutDTO dto = new VotePutDTO();
+            dto.setSessionCode("ABCDE");
+            dto.setToken("token");
+            dto.setMovieId(55L);
+            dto.setUserId(1L);
+            dto.setScore(1);
+
+            Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(session);
+            Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+            Mockito.when(userRepository.findByToken("token")).thenReturn(user);
+            Mockito.when(voteRepository.findBySessionCodeAndUserIdAndMovieId("ABCDE", 1L, 55L))
+                    .thenReturn(null);
+            Mockito.when(voteRepository.countBySessionCodeAndMovieId("ABCDE", 55L)).thenReturn(2L);
+            Mockito.when(tmdbService.getMovieDetails(55L)).thenReturn(movie);
+
+            sessionService.setVote(dto);
+
+            assertEquals(1, session.getCurrentMovieIndex());
+
+            verify(messagingTemplate).convertAndSend(
+                    Mockito.eq("/topic/session/ABCDE/next"),
+                    Mockito.any(Object.class));
+            verify(tmdbService).getMovieDetails(55L);
+        }
+
+        @Test
+        void vote_allUsersVoted_invalidMovieIndex_throwsConflict() {
+            Session session = new Session();
+            session.setSessionId(1L);
+            session.setSessionCode("ABCDE");
+            session.setSessionMovieIds(List.of(55L, 66L));
+            session.setCurrentMovieIndex(-1);
+            session.setJoinedUsers(2);
+            session.setVotesReceivedThisRound(0);
+
+            User user = new User();
+            user.setId(1L);
+            user.setCurrentSession(session);
+
+            VotePutDTO dto = new VotePutDTO();
+            dto.setSessionCode("ABCDE");
+            dto.setToken("token");
+            dto.setMovieId(55L);
+            dto.setUserId(1L);
+            dto.setScore(1);
+
+            Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(session);
+            Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+            Mockito.when(userRepository.findByToken("token")).thenReturn(user);
+            Mockito.when(voteRepository.findBySessionCodeAndUserIdAndMovieId("ABCDE", 1L, 55L))
+                    .thenReturn(null);
+            Mockito.when(voteRepository.countBySessionCodeAndMovieId("ABCDE", 55L)).thenReturn(2L);
+
+            ResponseStatusException exception = assertThrows(
+                    ResponseStatusException.class,
+                    () -> sessionService.setVote(dto));
+
+            assertEquals(409, exception.getStatusCode().value());
+            assertEquals("Invalid movie index", exception.getReason());
+            verify(messagingTemplate, Mockito.times(2)).convertAndSend(
+                    Mockito.eq("/topic/session/ABCDE/vote-progress"),
+                    Mockito.any(Object.class));
+        }
+
+        @Test
+        void vote_allUsersVoted_noMoviesAssigned_throwsConflict() {
+            Session session = new Session();
+            session.setSessionId(1L);
+            session.setSessionCode("ABCDE");
+            session.setSessionMovieIds(List.of());
+            session.setCurrentMovieIndex(0);
+            session.setJoinedUsers(1);
+            session.setVotesReceivedThisRound(0);
+
+            User user = new User();
+            user.setId(1L);
+            user.setCurrentSession(session);
+
+            VotePutDTO dto = new VotePutDTO();
+            dto.setSessionCode("ABCDE");
+            dto.setToken("token");
+            dto.setMovieId(55L);
+            dto.setUserId(1L);
+            dto.setScore(1);
+
+            Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(session);
+            Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+            Mockito.when(userRepository.findByToken("token")).thenReturn(user);
+            Mockito.when(voteRepository.findBySessionCodeAndUserIdAndMovieId("ABCDE", 1L, 55L))
+                    .thenReturn(null);
+            Mockito.when(voteRepository.countBySessionCodeAndMovieId("ABCDE", 55L)).thenReturn(1L);
+
+            ResponseStatusException exception = assertThrows(
+                    ResponseStatusException.class,
+                    () -> sessionService.setVote(dto));
+
+            assertEquals(409, exception.getStatusCode().value());
+            assertEquals("Session has no movies assigned", exception.getReason());
+            verify(messagingTemplate, Mockito.times(2)).convertAndSend(
+                    Mockito.eq("/topic/session/ABCDE/vote-progress"),
+                    Mockito.any(Object.class));
         }
 }
