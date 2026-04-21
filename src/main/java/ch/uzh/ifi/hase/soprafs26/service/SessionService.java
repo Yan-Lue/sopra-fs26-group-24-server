@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.rest.dto.*;
+import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -262,6 +263,35 @@ public class SessionService {
         messagingTemplate.convertAndSend((topic(sessionCode) + "/vote-progress"), (Object) voteProgressPayload);
     }
 
+    private void advanceOrEndSession(String sessionCode) {
+        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
+
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
+        }
+
+        List<Long> movieIds = session.getSessionMovieIds();
+        Integer currentMovieIndex = session.getCurrentMovieIndex();
+
+        if (movieIds == null || movieIds.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session has no movies assigned");
+        }
+
+        if (currentMovieIndex == null || currentMovieIndex < 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid movie index");
+        }
+
+        if (currentMovieIndex >= movieIds.size()) {
+            session.setStatus(SessionStatus.OFFLINE);
+            sessionRepository.save(session);
+            sessionRepository.flush();
+            broadcastSessionEnded(sessionCode);
+            return;
+        }
+
+        getNextMovie(sessionCode);
+    }
+
     @Transactional
     public Movie getNextMovie(String sessionCode) {
         Session session = sessionRepository.findSessionBySessionCode(sessionCode);
@@ -290,10 +320,17 @@ public class SessionService {
         Movie movie = tmdbService.getMovieDetails(movieId);
 
         session.setCurrentMovieIndex(currentMovieIndex + 1);
+        session.setVotesReceivedThisRound(0); // reset votes received for the new round
         sessionRepository.save(session);
         sessionRepository.flush();
 
+        //broadcast movie details to all users
+        broadcastVoteProgress(sessionCode, 0, session.getJoinedUsers()); 
+
         // This sends the movie object to everyone subscribed to that session's topic
+
+        //tried to convert movie to keep description field
+        //MovieGetDTO movieDTO = DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
 
         // IMPORTANT: the frontend needs to subscribe to the topic
         // "/topic/session/{sessionCode}/next" to receive the movie details when this
@@ -405,13 +442,13 @@ public class SessionService {
             voteRepository.flush();
         }
 
-            Integer votesReceived = voteRepository
-                .countBySessionCodeAndMovieId(votePutDTO.getSessionCode(), votePutDTO.getMovieId())
-                .intValue();
-            session.setVotesReceivedThisRound(votesReceived);
+        Integer votesReceived = voteRepository
+            .countBySessionCodeAndMovieId(votePutDTO.getSessionCode(), votePutDTO.getMovieId())
+            .intValue();
+        session.setVotesReceivedThisRound(votesReceived);
         sessionRepository.save(session);
         sessionRepository.flush();
-        
+    
         broadcastVoteProgress(
                 votePutDTO.getSessionCode(),
                 votesReceived,
@@ -419,14 +456,14 @@ public class SessionService {
 
         Integer joinedUsers = session.getJoinedUsers();
 
-            if (joinedUsers != null && votesReceived >= joinedUsers) {
+        if (joinedUsers != null && votesReceived >= joinedUsers) {
             // All users have voted - proceed to next movie
             session.setVotesReceivedThisRound(0); // Reset for next round
             sessionRepository.save(session);
             sessionRepository.flush();
 
             broadcastVoteProgress(votePutDTO.getSessionCode(), 0, session.getJoinedUsers());
-            getNextMovie(votePutDTO.getSessionCode());
+            advanceOrEndSession(votePutDTO.getSessionCode());
         }
     }
 
@@ -500,4 +537,5 @@ public class SessionService {
         }
         return usernames;
     }
+
 }
