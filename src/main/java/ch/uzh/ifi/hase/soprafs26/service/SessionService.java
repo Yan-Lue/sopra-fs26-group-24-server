@@ -329,12 +329,10 @@ public class SessionService {
 
         // This sends the movie object to everyone subscribed to that session's topic
 
-        //tried to convert movie to keep description field
-        //MovieGetDTO movieDTO = DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
-
         // IMPORTANT: the frontend needs to subscribe to the topic
         // "/topic/session/{sessionCode}/next" to receive the movie details when this
-        messagingTemplate.convertAndSend(topic(sessionCode) + "/next", movie);
+        MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+        messagingTemplate.convertAndSend(topic(sessionCode) + "/next", movieGetDTO);
 
         return movie;
     }
