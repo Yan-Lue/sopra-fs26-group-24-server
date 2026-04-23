@@ -15,6 +15,7 @@ import ch.uzh.ifi.hase.soprafs26.service.SessionService;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 
 @RestController
@@ -68,6 +69,10 @@ public class SessionController {
 
     @PostMapping("/session/{sessionCode}/vote")
     public String setVote(@PathVariable String sessionCode, @RequestBody VotePutDTO votePutDTO) {
+        if (votePutDTO.getSessionCode() != null && !sessionCode.equals(votePutDTO.getSessionCode())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Path sessionCode does not match payload sessionCode");
+        }
+        votePutDTO.setSessionCode(sessionCode);
 
         sessionService.setVote(votePutDTO);
 

@@ -1,7 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.rest.dto.*;
-import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -263,6 +262,71 @@ public class SessionService {
         messagingTemplate.convertAndSend((topic(sessionCode) + "/vote-progress"), (Object) voteProgressPayload);
     }
 
+    private Session getSessionForUpdateOrFallback(String sessionCode) {
+        Session lockedSession = sessionRepository.findSessionBySessionCodeForUpdate(sessionCode);
+        if (lockedSession != null) {
+            return lockedSession;
+        }
+        return sessionRepository.findSessionBySessionCode(sessionCode);
+    }
+
+    private Long getCurrentRoundMovieId(Session session) {
+        if (session == null) {
+            return null;
+        }
+
+        List<Long> movieIds = session.getSessionMovieIds();
+        Integer currentMovieIndex = session.getCurrentMovieIndex();
+
+        if (movieIds == null || movieIds.isEmpty() || currentMovieIndex == null || currentMovieIndex < 0) {
+            return null;
+        }
+
+        if (currentMovieIndex == 0) {
+            return movieIds.get(0);
+        }
+
+        int activeMovieIndex = currentMovieIndex - 1;
+        if (activeMovieIndex < 0 || activeMovieIndex >= movieIds.size()) {
+            return null;
+        }
+
+        return movieIds.get(activeMovieIndex);
+    }
+
+    private void advanceOrEndSessionIfStillOnMovie(String sessionCode, Long expectedCurrentMovieId) {
+        Session latestSession = getSessionForUpdateOrFallback(sessionCode);
+
+        if (latestSession == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
+        }
+
+        List<Long> movieIds = latestSession.getSessionMovieIds();
+        Integer currentMovieIndex = latestSession.getCurrentMovieIndex();
+
+        if (movieIds == null || movieIds.isEmpty()) {
+            broadcastVoteProgress(sessionCode, 0, latestSession.getJoinedUsers());
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session has no movies assigned");
+        }
+
+        if (currentMovieIndex == null || currentMovieIndex < 0) {
+            broadcastVoteProgress(sessionCode, 0, latestSession.getJoinedUsers());
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid movie index");
+        }
+
+        Long latestCurrentMovieId = getCurrentRoundMovieId(latestSession);
+        if (latestCurrentMovieId == null || !latestCurrentMovieId.equals(expectedCurrentMovieId)) {
+            return;
+        }
+
+        latestSession.setVotesReceivedThisRound(0);
+        sessionRepository.save(latestSession);
+        sessionRepository.flush();
+
+        broadcastVoteProgress(sessionCode, 0, latestSession.getJoinedUsers());
+        advanceOrEndSession(sessionCode);
+    }
+
     private void advanceOrEndSession(String sessionCode) {
         Session session = sessionRepository.findSessionBySessionCode(sessionCode);
 
@@ -394,7 +458,7 @@ public class SessionService {
     public void setVote(VotePutDTO votePutDTO) {
 
         // first we check if the session exists:
-        Session session = sessionRepository.findSessionBySessionCode(votePutDTO.getSessionCode());
+        Session session = getSessionForUpdateOrFallback(votePutDTO.getSessionCode());
 
         if (session == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
@@ -457,13 +521,7 @@ public class SessionService {
         Integer joinedUsers = session.getJoinedUsers();
 
         if (joinedUsers != null && votesReceived >= joinedUsers) {
-            // All users have voted - proceed to next movie
-            session.setVotesReceivedThisRound(0); // Reset for next round
-            sessionRepository.save(session);
-            sessionRepository.flush();
-
-            broadcastVoteProgress(votePutDTO.getSessionCode(), 0, session.getJoinedUsers());
-            advanceOrEndSession(votePutDTO.getSessionCode());
+            advanceOrEndSessionIfStillOnMovie(votePutDTO.getSessionCode(), votePutDTO.getMovieId());
         }
     }
 
