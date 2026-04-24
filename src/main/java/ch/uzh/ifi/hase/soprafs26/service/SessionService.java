@@ -289,7 +289,7 @@ public class SessionService {
             return;
         }
 
-        getNextMovie(sessionCode);
+        // getNextMovie(sessionCode);
     }
 
     @Transactional
