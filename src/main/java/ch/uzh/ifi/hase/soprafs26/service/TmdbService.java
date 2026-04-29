@@ -12,6 +12,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SimilarMovieGetDTO;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -56,10 +57,11 @@ public class TmdbService {
                                                                 filters == null ? Optional.empty()
                                                                                 : Optional.ofNullable(
                                                                                                 filters.minRating()))
-                                                .queryParamIfPresent("primary_release_year",
+                                                .queryParamIfPresent("primary_release_date.gte",
                                                                 filters == null ? Optional.empty()
                                                                                 : Optional.ofNullable(
-                                                                                                filters.releaseYear()))
+                                                                                                filters.releaseYear())
+                                                                                  .map(LocalDate::toString))
                                                 .queryParam("page", 1)
                                                 .build())
                                 .retrieve()
@@ -120,7 +122,7 @@ public class TmdbService {
 
                 SimilarMovieResponse similarMovieResponse = restClient.get()
                                 .uri(uriBuilder -> uriBuilder
-                                                .path("/movie/{movieId}/similar")
+                                                .path("/movie/{movieId}/recommendations")
                                                 .queryParam("api_key", apiKey)
                                                 .queryParam("language", "en-US")
                                                 .queryParam("page", 1)
@@ -173,7 +175,7 @@ public class TmdbService {
                 }
 
                 return response.results().stream()
-                                .limit(4)
+                        .limit(8)
                                 .map(result -> new SimilarMovie(
                                                 result.id(),
                                                 result.title(),

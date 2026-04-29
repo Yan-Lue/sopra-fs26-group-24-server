@@ -15,6 +15,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
@@ -255,14 +256,14 @@ class TmdbServiceTest {
             }
             """;
 
-        MovieFilters filters = new MovieFilters(List.of(28L, 10749L), 7.5, 2024);
+        MovieFilters filters = new MovieFilters(List.of(28L, 10749L), 7.5, new Date(2024));
 
         List<Long> ids = tmdbService.discoverMovieIds(2, filters);
 
         assertEquals(2, ids.size());
         assertTrue(lastDiscoverUri.getQuery().contains("with_genres=28|10749"));
         assertTrue(lastDiscoverUri.getQuery().contains("vote_average.gte=7.5"));
-        assertTrue(lastDiscoverUri.getQuery().contains("primary_release_year=2024"));
+        assertTrue(lastDiscoverUri.getQuery().contains("release_date.gte=2024-01-01"));
     }
 
     private void sendJson(HttpExchange exchange, String body) throws IOException {

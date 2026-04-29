@@ -37,6 +37,7 @@ import ch.uzh.ifi.hase.soprafs26.service.SessionService;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Date;
 import java.util.List;
 
 @WebMvcTest(SessionController.class)
@@ -215,7 +216,7 @@ class SessionControllerTest {
                 dto.setRoundLimit(10);
                 dto.setGenres(List.of("Action", "Romance"));
                 dto.setMinRating(7.5);
-                dto.setReleaseYear(2024);
+                dto.setReleaseYear(new Date(2024));
 
                 given(sessionService.updateSessionFilters(eq("test1234"), any(SessionFilterPutDTO.class)))
                                 .willReturn(testSession);
