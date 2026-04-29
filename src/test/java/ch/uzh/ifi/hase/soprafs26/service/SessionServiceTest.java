@@ -26,7 +26,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -300,7 +299,7 @@ class SessionServiceTest {
                 dto.setRoundLimit(3);
                 dto.setGenres(List.of("Action", "Romance"));
                 dto.setMinRating(7.5);
-                dto.setReleaseYear(new Date(2024));
+                dto.setReleaseYear(2024);
 
                 List<Long> movieIds = List.of(101L, 102L, 103L);
 

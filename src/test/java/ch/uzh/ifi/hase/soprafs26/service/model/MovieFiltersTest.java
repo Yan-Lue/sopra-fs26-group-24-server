@@ -3,7 +3,7 @@ package ch.uzh.ifi.hase.soprafs26.service.model;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
 import org.junit.jupiter.api.Test;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,13 +17,13 @@ class MovieFiltersTest {
         SessionFilterPutDTO dto = new SessionFilterPutDTO();
         dto.setGenres(List.of("Action", "Romance"));
         dto.setMinRating(7.5);
-        dto.setReleaseYear(new Date(2024));
+        dto.setReleaseYear(2024);
 
         MovieFilters filters = MovieFilters.fromDTO(dto);
 
         assertEquals(List.of(28L, 10749L), filters.genreIds());
         assertEquals(7.5, filters.minRating());
-        assertEquals(2024, filters.releaseYear());
+        assertEquals(LocalDate.of(2024,1,1), filters.releaseYear());
     }
 
     @Test

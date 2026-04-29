@@ -15,7 +15,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
@@ -47,7 +47,7 @@ class TmdbServiceTest {
         });
 
         server.createContext("/movie", exchange -> {
-            if (exchange.getRequestURI().getPath().endsWith("/similar")) {
+            if (exchange.getRequestURI().getPath().endsWith("/recommendations")) {
                 similarMovieCalls.incrementAndGet();
                 sendJson(exchange, similarMovieResponse);
                 return;
@@ -256,7 +256,9 @@ class TmdbServiceTest {
             }
             """;
 
-        MovieFilters filters = new MovieFilters(List.of(28L, 10749L), 7.5, new Date(2024));
+        LocalDate releaseYear = LocalDate.of(2024,1,1);
+
+        MovieFilters filters = new MovieFilters(List.of(28L, 10749L), 7.5, releaseYear);
 
         List<Long> ids = tmdbService.discoverMovieIds(2, filters);
 
