@@ -299,7 +299,7 @@ class SessionServiceTest {
                 dto.setRoundLimit(3);
                 dto.setGenres(List.of("Action", "Romance"));
                 dto.setMinRating(7.5);
-                dto.setReleaseYear(2024);
+                dto.setMinReleaseYear(2024);
 
                 List<Long> movieIds = List.of(101L, 102L, 103L);
 

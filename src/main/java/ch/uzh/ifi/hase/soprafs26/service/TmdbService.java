@@ -65,12 +65,17 @@ public class TmdbService {
                                                 .queryParamIfPresent("vote_average.gte",
                                                                 filters == null ? Optional.empty()
                                                                                 : Optional.ofNullable(
-                                                                                                filters.minRating()))
+                                                                                        filters.minRating()))
                                                 .queryParamIfPresent("primary_release_date.gte",
                                                                 filters == null ? Optional.empty()
                                                                                 : Optional.ofNullable(
-                                                                                                filters.releaseYear())
+                                                                                        filters.minReleaseYear())
                                                                                   .map(LocalDate::toString))
+                                                .queryParamIfPresent("primary_release_date.lte",
+                                                                filters == null ? Optional.empty()
+                                                                            : Optional.ofNullable(
+                                                                                    filters.maxReleaseYear())
+                                                                              .map(LocalDate::toString))
                                                 .queryParam("page", page)
                                                 .build())
                                 .retrieve()

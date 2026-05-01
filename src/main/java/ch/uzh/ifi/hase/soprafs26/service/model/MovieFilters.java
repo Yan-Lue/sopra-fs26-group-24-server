@@ -10,7 +10,8 @@ import java.util.Objects;
 public record MovieFilters(
         List<Long> genreIds,
         Double minRating,
-        LocalDate releaseYear
+        LocalDate minReleaseYear,
+        LocalDate maxReleaseYear
 ) {
     private static final Map<String, Long> GENRE_NAME_TO_ID = Map.ofEntries(
             Map.entry("Action", 28L),
@@ -41,12 +42,17 @@ public record MovieFilters(
                                                                     .filter(Objects::nonNull)
                                                                     .toList();
 
-        LocalDate releaseYear = null;
+        LocalDate minReleaseYear = null;
+        LocalDate maxReleaseYear = null;
 
-        if (dto.getReleaseYear() != null) {
-            releaseYear = LocalDate.of(dto.getReleaseYear(), 1, 1);
+        if (dto.getMinReleaseYear() != null) {
+            minReleaseYear = LocalDate.of(dto.getMinReleaseYear(), 1, 1);
         }
-        return new MovieFilters(genreIds, dto.getMinRating(), releaseYear);
+
+        if (dto.getMaxReleaseYear() != null) {
+            maxReleaseYear = LocalDate.of(dto.getMaxReleaseYear(), 12, 31);
+        }
+        return new MovieFilters(genreIds, dto.getMinRating(), minReleaseYear, maxReleaseYear);
     }
 }
 

@@ -245,7 +245,7 @@ class TmdbServiceTest {
     }
 
     @Test
-    void discoverMovieIds_withFilters_addsExpectedQueryParams() {
+    void discoverMovieIds_withFiltersNoMaxDate_addsExpectedQueryParams() {
         discoverResponse = """
             {
               "results": [
@@ -256,9 +256,9 @@ class TmdbServiceTest {
             }
             """;
 
-        LocalDate releaseYear = LocalDate.of(2024,1,1);
+        LocalDate minReleaseYear = LocalDate.of(2024,1,1);
 
-        MovieFilters filters = new MovieFilters(List.of(28L, 10749L), 7.5, releaseYear);
+        MovieFilters filters = new MovieFilters(List.of(28L, 10749L), 7.5, minReleaseYear, null);
 
         List<Long> ids = tmdbService.discoverMovieIds(2, filters);
 
@@ -266,6 +266,32 @@ class TmdbServiceTest {
         assertTrue(lastDiscoverUri.getQuery().contains("with_genres=28|10749"));
         assertTrue(lastDiscoverUri.getQuery().contains("vote_average.gte=7.5"));
         assertTrue(lastDiscoverUri.getQuery().contains("release_date.gte=2024-01-01"));
+    }
+
+    @Test
+    void discoverMovieIds_withFiltersWithMaxDate_addsExpectedQueryParams() {
+        discoverResponse = """
+            {
+              "results": [
+                { "id": 1 },
+                { "id": 2 },
+                { "id": 3 }
+              ]
+            }
+            """;
+
+        LocalDate minReleaseYear = LocalDate.of(2024,1,1);
+        LocalDate maxReleaseYear = LocalDate.of(2026, 12, 31);
+
+        MovieFilters filters = new MovieFilters(List.of(28L, 10749L), 7.5, minReleaseYear, maxReleaseYear);
+
+        List<Long> ids = tmdbService.discoverMovieIds(2, filters);
+
+        assertEquals(2, ids.size());
+        assertTrue(lastDiscoverUri.getQuery().contains("with_genres=28|10749"));
+        assertTrue(lastDiscoverUri.getQuery().contains("vote_average.gte=7.5"));
+        assertTrue(lastDiscoverUri.getQuery().contains("primary_release_date.gte=2024-01-01"));
+        assertTrue(lastDiscoverUri.getQuery().contains("primary_release_date.lte=2026-12-31"));
     }
 
     private void sendJson(HttpExchange exchange, String body) throws IOException {
