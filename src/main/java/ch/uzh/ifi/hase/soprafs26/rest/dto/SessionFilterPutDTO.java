@@ -9,6 +9,7 @@ public class SessionFilterPutDTO {
     private Integer minReleaseYear;
     private Integer maxReleaseYear;
     private Integer timePerRound;
+    private List<String> providers;
 
     public Integer getRoundLimit() {
         return roundLimit;
@@ -56,5 +57,13 @@ public class SessionFilterPutDTO {
 
     public void setTimePerRound(Integer timePerRound) {
         this.timePerRound = timePerRound;
+    }
+
+    public List<String> getProviders() {
+        return providers;
+    }
+
+    public void setProviders(List<String> providers) {
+        this.providers = providers;
     }
 }
