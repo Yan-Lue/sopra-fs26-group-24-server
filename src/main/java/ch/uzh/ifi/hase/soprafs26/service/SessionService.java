@@ -297,10 +297,10 @@ public class SessionService {
 
     public Movie forceNextMovie(String sessionCode, String token) {
         Session session = sessionRepository.findSessionBySessionCode(sessionCode);
-        if (session == null)
+        if (session == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found");
+        }
 
-        // 1. Correct Host Validation
         Long currentUserId = null;
         User user = userRepository.findByToken(token);
         GuestUser guestUser = guestUserRepository.findByToken(token);
