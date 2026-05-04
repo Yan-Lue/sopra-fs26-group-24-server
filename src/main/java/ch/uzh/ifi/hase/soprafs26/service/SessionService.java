@@ -487,6 +487,21 @@ public class SessionService {
                 votesReceived,
                 session.getJoinedUsers());
 
+        Integer joinedUsers = session.getJoinedUsers();
+        Integer currentMovieIndex = session.getCurrentMovieIndex();
+        String sessionCode = session.getSessionCode();
+        List<Long> movieIds = session.getSessionMovieIds();
+
+        // this meeans that we are at the end of the game and all users have voted
+        if ((currentMovieIndex == null || currentMovieIndex < 0 || currentMovieIndex >= movieIds.size())
+                && joinedUsers != null && votesReceived >= joinedUsers) {
+            session.setStatus(SessionStatus.OFFLINE);
+            sessionRepository.save(session);
+            sessionRepository.flush();
+
+            broadcastSessionEnded(sessionCode);
+        }
+
         System.out.println("Votes received for movie " + votePutDTO.getMovieId() + ": " + votesReceived);
     }
 
