@@ -12,6 +12,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SimilarMovieGetDTO;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ public class TmdbService {
         private final String apiKey;
         private final String imageBaseUrl;
         private final Map<Long, CachedMovie> movieCache = new ConcurrentHashMap<>();
+        private static final Random RANDOM = new Random();
 
         public TmdbService(
                         @Value("${tmdb.base-url}") String baseUrl,
@@ -40,8 +42,14 @@ public class TmdbService {
                 this.imageBaseUrl = imageBaseUrl;
         }
 
+        private int pickDiscoverPage() {
+            return RANDOM.nextInt(5) + 1;
+        }
+
         public List<Long> discoverMovieIds(int amount, MovieFilters filters) {
 
+            DiscoverPreset preset = pickDiscoverPreset();
+            int page = pickDiscoverPage();
                 // restClient builds, sends and receives requests and responses from external
                 // sites like tmdb
                 DiscoverResponse response = restClient.get()
@@ -50,17 +58,25 @@ public class TmdbService {
                                                 .queryParam("api_key", apiKey)
                                                 .queryParam("include_adult", false)
                                                 .queryParam("language", "en-US")
-                                                .queryParam("sort_by", "popularity.desc")
+                                                .queryParam("sort_by", preset.sortBy())
+                                                .queryParamIfPresent("vote_count.gte",
+                                                        Optional.ofNullable(preset.minVoteCount()))
                                                 .queryParamIfPresent("with_genres", buildGenre(filters))
                                                 .queryParamIfPresent("vote_average.gte",
                                                                 filters == null ? Optional.empty()
                                                                                 : Optional.ofNullable(
-                                                                                                filters.minRating()))
-                                                .queryParamIfPresent("primary_release_year",
+                                                                                        filters.minRating()))
+                                                .queryParamIfPresent("primary_release_date.gte",
                                                                 filters == null ? Optional.empty()
                                                                                 : Optional.ofNullable(
-                                                                                                filters.releaseYear()))
-                                                .queryParam("page", 1)
+                                                                                        filters.minReleaseYear())
+                                                                                  .map(LocalDate::toString))
+                                                .queryParamIfPresent("primary_release_date.lte",
+                                                                filters == null ? Optional.empty()
+                                                                            : Optional.ofNullable(
+                                                                                    filters.maxReleaseYear())
+                                                                              .map(LocalDate::toString))
+                                                .queryParam("page", page)
                                                 .build())
                                 .retrieve()
                                 .body(DiscoverResponse.class);
@@ -120,7 +136,7 @@ public class TmdbService {
 
                 SimilarMovieResponse similarMovieResponse = restClient.get()
                                 .uri(uriBuilder -> uriBuilder
-                                                .path("/movie/{movieId}/similar")
+                                                .path("/movie/{movieId}/recommendations")
                                                 .queryParam("api_key", apiKey)
                                                 .queryParam("language", "en-US")
                                                 .queryParam("page", 1)
@@ -173,7 +189,7 @@ public class TmdbService {
                 }
 
                 return response.results().stream()
-                                .limit(4)
+                        .limit(8)
                                 .map(result -> new SimilarMovie(
                                                 result.id(),
                                                 result.title(),
@@ -214,5 +230,30 @@ public class TmdbService {
                         @JsonProperty("poster_path") String posterPath,
                         @JsonProperty("vote_average") Double voteAverage,
                         @JsonProperty("release_date") String releaseDate) {
+        }
+
+        private record DiscoverPreset(String sortBy, Integer minVoteCount) {
+        }
+
+        private static final List<DiscoverPreset> DISCOVER_PRESETS = List.of(
+                new DiscoverPreset("popularity.desc", null),
+                new DiscoverPreset("vote_count.desc", null),
+                new DiscoverPreset("revenue.desc", null),
+                new DiscoverPreset("vote_average.desc", 250)
+        );
+
+        private DiscoverPreset pickDiscoverPreset() {
+            int roll = RANDOM.nextInt(100);
+
+            if (roll < 60) {
+                return DISCOVER_PRESETS.get(0);
+            }
+            if (roll < 85) {
+                return DISCOVER_PRESETS.get(1);
+            }
+            if (roll < 95) {
+                return DISCOVER_PRESETS.get(2);
+            }
+            return DISCOVER_PRESETS.get(3);
         }
 }

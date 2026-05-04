@@ -215,7 +215,8 @@ class SessionControllerTest {
                 dto.setRoundLimit(10);
                 dto.setGenres(List.of("Action", "Romance"));
                 dto.setMinRating(7.5);
-                dto.setReleaseYear(2024);
+                dto.setMinReleaseYear(2024);
+                dto.setMaxReleaseYear(2026);
 
                 given(sessionService.updateSessionFilters(eq("test1234"), any(SessionFilterPutDTO.class)))
                                 .willReturn(testSession);
@@ -379,7 +380,7 @@ class SessionControllerTest {
 
         @Test
         void leaveSession_validInput_returnsNoContent() throws Exception {
-                Mockito.doNothing().when(sessionService).leaveSession(eq("test1234"), eq("userToken"));
+                Mockito.doNothing().when(sessionService).leaveSession("test1234", "userToken");
 
                 mockMvc.perform(delete("/session/test1234")
                         .header("Authorization", "userToken"))

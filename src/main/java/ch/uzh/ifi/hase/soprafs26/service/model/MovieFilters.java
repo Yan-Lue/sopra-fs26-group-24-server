@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.service.model;
 
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -9,7 +10,8 @@ import java.util.Objects;
 public record MovieFilters(
         List<Long> genreIds,
         Double minRating,
-        Integer releaseYear
+        LocalDate minReleaseYear,
+        LocalDate maxReleaseYear
 ) {
     private static final Map<String, Long> GENRE_NAME_TO_ID = Map.ofEntries(
             Map.entry("Action", 28L),
@@ -39,7 +41,18 @@ public record MovieFilters(
                                                                     .map(GENRE_NAME_TO_ID::get)
                                                                     .filter(Objects::nonNull)
                                                                     .toList();
-        return new MovieFilters(genreIds, dto.getMinRating(), dto.getReleaseYear());
+
+        LocalDate minReleaseYear = null;
+        LocalDate maxReleaseYear = null;
+
+        if (dto.getMinReleaseYear() != null) {
+            minReleaseYear = LocalDate.of(dto.getMinReleaseYear(), 1, 1);
+        }
+
+        if (dto.getMaxReleaseYear() != null) {
+            maxReleaseYear = LocalDate.of(dto.getMaxReleaseYear(), 12, 31);
+        }
+        return new MovieFilters(genreIds, dto.getMinRating(), minReleaseYear, maxReleaseYear);
     }
 }
 
