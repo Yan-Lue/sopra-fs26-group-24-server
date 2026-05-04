@@ -43,13 +43,13 @@ public class TmdbService {
         }
 
         private int pickDiscoverPage() {
-            return RANDOM.nextInt(5) + 1;
+                return RANDOM.nextInt(5) + 1;
         }
 
         public List<Long> discoverMovieIds(int amount, MovieFilters filters) {
 
-            DiscoverPreset preset = pickDiscoverPreset();
-            int page = pickDiscoverPage();
+                DiscoverPreset preset = pickDiscoverPreset();
+                int page = pickDiscoverPage();
                 // restClient builds, sends and receives requests and responses from external
                 // sites like tmdb
                 DiscoverResponse response = restClient.get()
@@ -60,22 +60,29 @@ public class TmdbService {
                                                 .queryParam("language", "en-US")
                                                 .queryParam("sort_by", preset.sortBy())
                                                 .queryParamIfPresent("vote_count.gte",
-                                                        Optional.ofNullable(preset.minVoteCount()))
+                                                                Optional.ofNullable(preset.minVoteCount()))
                                                 .queryParamIfPresent("with_genres", buildGenre(filters))
                                                 .queryParamIfPresent("vote_average.gte",
                                                                 filters == null ? Optional.empty()
                                                                                 : Optional.ofNullable(
-                                                                                        filters.minRating()))
+                                                                                                filters.minRating()))
                                                 .queryParamIfPresent("primary_release_date.gte",
                                                                 filters == null ? Optional.empty()
                                                                                 : Optional.ofNullable(
-                                                                                        filters.minReleaseYear())
-                                                                                  .map(LocalDate::toString))
+                                                                                                filters.minReleaseYear())
+                                                                                                .map(LocalDate::toString))
                                                 .queryParamIfPresent("primary_release_date.lte",
                                                                 filters == null ? Optional.empty()
-                                                                            : Optional.ofNullable(
-                                                                                    filters.maxReleaseYear())
-                                                                              .map(LocalDate::toString))
+                                                                                : Optional.ofNullable(
+                                                                                                filters.maxReleaseYear())
+                                                                                                .map(LocalDate::toString))
+                                                .queryParamIfPresent("with_watch_providers",
+                                                                filters == null ? Optional.empty()
+                                                                                : Optional.ofNullable(filters
+                                                                                                .providerIds()))
+
+                                                .queryParam("watch_region", "CH")
+                                                .queryParam("with_watch_monetization_types", "flatrate")
                                                 .queryParam("page", page)
                                                 .build())
                                 .retrieve()
@@ -170,14 +177,15 @@ public class TmdbService {
 
                         // uses the function getMovieDetails to get the details out of the chache
                         Movie movie = getMovieDetails(movieId);
-                        List<SimilarMovieGetDTO> similarMovieDTOs =
-                        movie.getSimilarMovies() == null
-                                ? List.of()
-                                : movie.getSimilarMovies().stream()
-                                        .map(ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper.INSTANCE::convertSimilarMovieToDTO)
-                                        .toList();
-                                        
-                        results.add(new MovieResultDTO(movie.getId(), movie.getTitle(), score, movie.getPosterPath(), movie.getOverview(), movie.getRating(), movie.getReleaseDate(), movie.getGenres(), similarMovieDTOs, null, null, null));
+                        List<SimilarMovieGetDTO> similarMovieDTOs = movie.getSimilarMovies() == null
+                                        ? List.of()
+                                        : movie.getSimilarMovies().stream()
+                                                        .map(ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper.INSTANCE::convertSimilarMovieToDTO)
+                                                        .toList();
+
+                        results.add(new MovieResultDTO(movie.getId(), movie.getTitle(), score, movie.getPosterPath(),
+                                        movie.getOverview(), movie.getRating(), movie.getReleaseDate(),
+                                        movie.getGenres(), similarMovieDTOs, null, null, null));
                 }
 
                 return results;
@@ -189,7 +197,7 @@ public class TmdbService {
                 }
 
                 return response.results().stream()
-                        .limit(8)
+                                .limit(8)
                                 .map(result -> new SimilarMovie(
                                                 result.id(),
                                                 result.title(),
@@ -236,24 +244,23 @@ public class TmdbService {
         }
 
         private static final List<DiscoverPreset> DISCOVER_PRESETS = List.of(
-                new DiscoverPreset("popularity.desc", null),
-                new DiscoverPreset("vote_count.desc", null),
-                new DiscoverPreset("revenue.desc", null),
-                new DiscoverPreset("vote_average.desc", 250)
-        );
+                        new DiscoverPreset("popularity.desc", null),
+                        new DiscoverPreset("vote_count.desc", null),
+                        new DiscoverPreset("revenue.desc", null),
+                        new DiscoverPreset("vote_average.desc", 250));
 
         private DiscoverPreset pickDiscoverPreset() {
-            int roll = RANDOM.nextInt(100);
+                int roll = RANDOM.nextInt(100);
 
-            if (roll < 60) {
-                return DISCOVER_PRESETS.get(0);
-            }
-            if (roll < 85) {
-                return DISCOVER_PRESETS.get(1);
-            }
-            if (roll < 95) {
-                return DISCOVER_PRESETS.get(2);
-            }
-            return DISCOVER_PRESETS.get(3);
+                if (roll < 60) {
+                        return DISCOVER_PRESETS.get(0);
+                }
+                if (roll < 85) {
+                        return DISCOVER_PRESETS.get(1);
+                }
+                if (roll < 95) {
+                        return DISCOVER_PRESETS.get(2);
+                }
+                return DISCOVER_PRESETS.get(3);
         }
 }
