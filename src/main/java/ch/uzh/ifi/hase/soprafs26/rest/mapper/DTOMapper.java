@@ -91,4 +91,9 @@ public interface DTOMapper {
     @Mapping(source = "movies", target = "movies")
     @Mapping(source = "user.id", target = "userId")
     HistoryGetDTO convertEntityToHistoryGetDTO(History history);
+
+	@Mapping(source = "id", target = "id")
+	@Mapping(source = "username", target = "username")
+	@Mapping(source = "bio", target = "bio")
+	UserSearchDTO convertEntityToUserSearchDTO(User user);
 }
