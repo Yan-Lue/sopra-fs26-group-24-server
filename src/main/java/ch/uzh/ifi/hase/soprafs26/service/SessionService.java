@@ -193,9 +193,10 @@ public class SessionService {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest user not found");
             }
             expectedId = guestUser.getId();
-            
+
             // Remove from session
-            if (guestUser.getCurrentSession() != null && guestUser.getCurrentSession().getSessionId().equals(session.getSessionId())) {
+            if (guestUser.getCurrentSession() != null
+                    && guestUser.getCurrentSession().getSessionId().equals(session.getSessionId())) {
                 guestUser.setCurrentSession(null);
                 guestUserRepository.save(guestUser);
                 guestUserRepository.flush();
@@ -206,9 +207,10 @@ public class SessionService {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
             }
             expectedId = user.getId();
-            
+
             // Remove from session
-            if (user.getCurrentSession() != null && user.getCurrentSession().getSessionId().equals(session.getSessionId())) {
+            if (user.getCurrentSession() != null
+                    && user.getCurrentSession().getSessionId().equals(session.getSessionId())) {
                 user.setCurrentSession(null);
                 userRepository.save(user);
                 userRepository.flush();
@@ -257,7 +259,8 @@ public class SessionService {
 
     private void broadcastVoteProgress(String sessionCode, Integer votesReceived, Integer joinedUsers) {
         Map<String, Object> voteProgressPayload = new HashMap<>();
-        //added ternary checks to avoid null values, should not occur but better safe than sorry
+        // added ternary checks to avoid null values, should not occur but better safe
+        // than sorry
         voteProgressPayload.put("votesReceived", votesReceived == null ? 0 : votesReceived);
         voteProgressPayload.put("joinedUsers", joinedUsers == null ? 0 : joinedUsers);
         messagingTemplate.convertAndSend((topic(sessionCode) + "/vote-progress"), (Object) voteProgressPayload);
@@ -292,6 +295,36 @@ public class SessionService {
         // getNextMovie(sessionCode);
     }
 
+    public Movie forceNextMovie(String sessionCode, String token) {
+        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found");
+        }
+
+        Long currentUserId = null;
+        User user = userRepository.findByToken(token);
+        GuestUser guestUser = guestUserRepository.findByToken(token);
+
+        if (user != null)
+            currentUserId = user.getId();
+        else if (guestUser != null)
+            currentUserId = guestUser.getId();
+
+        if (currentUserId == null || !currentUserId.equals(session.getHostId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can force the next movie");
+        }
+
+        Integer actualVotes = session.getVotesReceivedThisRound();
+
+        Integer joinedUsers = session.getJoinedUsers();
+
+        if (joinedUsers != null && actualVotes < joinedUsers) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not all users have voted yet");
+        }
+
+        return getNextMovie(sessionCode);
+    }
+
     @Transactional
     public Movie getNextMovie(String sessionCode) {
         Session session = sessionRepository.findSessionBySessionCode(sessionCode);
@@ -324,8 +357,8 @@ public class SessionService {
         sessionRepository.save(session);
         sessionRepository.flush();
 
-        //broadcast movie details to all users
-        broadcastVoteProgress(sessionCode, 0, session.getJoinedUsers()); 
+        // broadcast movie details to all users
+        broadcastVoteProgress(sessionCode, 0, session.getJoinedUsers());
 
         // This sends the movie object to everyone subscribed to that session's topic
 
@@ -337,7 +370,8 @@ public class SessionService {
         return movie;
     }
 
-    // this method is needed for correct redirection because of timing issues with the websocket
+    // this method is needed for correct redirection because of timing issues with
+    // the websocket
     public Movie getCurrentMovie(String sessionCode) {
         Session session = sessionRepository.findSessionBySessionCode(sessionCode);
 
@@ -441,28 +475,32 @@ public class SessionService {
         }
 
         Integer votesReceived = voteRepository
-            .countBySessionCodeAndMovieId(votePutDTO.getSessionCode(), votePutDTO.getMovieId())
-            .intValue();
+                .countBySessionCodeAndMovieId(votePutDTO.getSessionCode(), votePutDTO.getMovieId())
+                .intValue();
         session.setVotesReceivedThisRound(votesReceived);
         sessionRepository.save(session);
         sessionRepository.flush();
-    
+
         broadcastVoteProgress(
                 votePutDTO.getSessionCode(),
                 votesReceived,
                 session.getJoinedUsers());
 
         Integer joinedUsers = session.getJoinedUsers();
+        Integer currentMovieIndex = session.getCurrentMovieIndex();
+        String sessionCode = session.getSessionCode();
+        List<Long> movieIds = session.getSessionMovieIds();
 
-        if (joinedUsers != null && votesReceived >= joinedUsers) {
-            // All users have voted - proceed to next movie
-            session.setVotesReceivedThisRound(0); // Reset for next round
+        // this meeans that we are at the end of the game and all users have voted
+        if ((currentMovieIndex == null || currentMovieIndex < 0 || currentMovieIndex >= movieIds.size())
+                && joinedUsers != null && votesReceived >= joinedUsers) {
+            session.setStatus(SessionStatus.OFFLINE);
             sessionRepository.save(session);
             sessionRepository.flush();
 
-            broadcastVoteProgress(votePutDTO.getSessionCode(), 0, session.getJoinedUsers());
-            advanceOrEndSession(votePutDTO.getSessionCode());
+            broadcastSessionEnded(sessionCode);
         }
+
     }
 
     public List<MovieResultDTO> calculateFullLeaderboard(String sessionCode) {
@@ -482,12 +520,11 @@ public class SessionService {
             Integer summedScore = voteRepository.getSumOfScores(sessionCode, movieId);
             int score = summedScore != null ? summedScore : 0;
 
-            List<SimilarMovieGetDTO> similarMovieDTOs =
-                    movie.getSimilarMovies() == null
-                            ? List.of()
-                            : movie.getSimilarMovies().stream()
-                                    .map(ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper.INSTANCE::convertSimilarMovieToDTO)
-                                    .toList();
+            List<SimilarMovieGetDTO> similarMovieDTOs = movie.getSimilarMovies() == null
+                    ? List.of()
+                    : movie.getSimilarMovies().stream()
+                            .map(ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper.INSTANCE::convertSimilarMovieToDTO)
+                            .toList();
 
             MovieResultDTO dto = new MovieResultDTO(
                     movie.getId(),

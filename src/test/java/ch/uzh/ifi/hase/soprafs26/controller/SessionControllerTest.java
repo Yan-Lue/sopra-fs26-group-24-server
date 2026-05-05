@@ -50,6 +50,8 @@ class SessionControllerTest {
 
         private Session testSession;
 
+        private Movie testMovie;
+
         @BeforeEach
         void setup() {
                 // Initialize the object once for all tests
@@ -64,6 +66,21 @@ class SessionControllerTest {
                 testSession.setStatus(SessionStatus.ONLINE);
                 testSession.setCreationDate(new java.util.Date());
                 testSession.setSessionToken("testSessionToken");
+
+                testMovie = new Movie(
+                                550L,
+                                "Fight Club",
+                                "Insomnia and soap.",
+                                "https://image.tmdb.org/t/p/w500/fight-club.jpg",
+                                8.4,
+                                "1999-10-15",
+                                List.of("Drama", "Thriller"),
+                                List.of(new SimilarMovie(
+                                                551L,
+                                                "Se7en",
+                                                "https://image.tmdb.org/t/p/w500/se7en.jpg",
+                                                8.3,
+                                                "1995-09-22")));
         }
 
         // When creating new Session correct Session Credentials get returned and Status
@@ -155,22 +172,8 @@ class SessionControllerTest {
 
         @Test
         void getNextMovie_validSessionCode_returnsMovie() throws Exception {
-                Movie movie = new Movie(
-                                550L,
-                                "Fight Club",
-                                "Insomnia and soap.",
-                                "https://image.tmdb.org/t/p/w500/fight-club.jpg",
-                                8.4,
-                                "1999-10-15",
-                                List.of("Drama", "Thriller"),
-                                List.of(new SimilarMovie(
-                                                551L,
-                                                "Se7en",
-                                                "https://image.tmdb.org/t/p/w500/se7en.jpg",
-                                                8.3,
-                                                "1995-09-22")));
 
-                given(sessionService.getNextMovie("1")).willReturn(movie);
+                given(sessionService.getNextMovie("1")).willReturn(testMovie);
 
                 MockHttpServletRequestBuilder getRequest = get("/session/1/next")
                                 .contentType(MediaType.APPLICATION_JSON);
@@ -262,39 +265,38 @@ class SessionControllerTest {
         @Test
         void getSessionResults_validSessionCode_returnsDetailedResults() throws Exception {
                 MovieResultDTO dto = new MovieResultDTO(
-                        550L,
-                        "Fight Club",
-                        8,
-                        "https://someImagetoMovie.jpg",
-                        "Insomnia and soap.",
-                        8.4,
-                        "1999-10-15",
-                        List.of("Drama", "Thriller"),
-                        List.of(),
-                        5,
-                        1,
-                        2
-                );
+                                550L,
+                                "Fight Club",
+                                8,
+                                "https://someImagetoMovie.jpg",
+                                "Insomnia and soap.",
+                                8.4,
+                                "1999-10-15",
+                                List.of("Drama", "Thriller"),
+                                List.of(),
+                                5,
+                                1,
+                                2);
 
                 given(sessionService.calculateFullLeaderboard("test1234")).willReturn(List.of(dto));
 
                 MockHttpServletRequestBuilder getRequest = get("/session/test1234/results")
-                        .contentType(MediaType.APPLICATION_JSON);
+                                .contentType(MediaType.APPLICATION_JSON);
 
                 mockMvc.perform(getRequest)
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$", hasSize(1)))
-                        .andExpect(jsonPath("$[0].movieId", is(550)))
-                        .andExpect(jsonPath("$[0].title", is("Fight Club")))
-                        .andExpect(jsonPath("$[0].score", is(8)))
-                        .andExpect(jsonPath("$[0].posterPath", is("https://someImagetoMovie.jpg")))
-                        .andExpect(jsonPath("$[0].description", is("Insomnia and soap.")))
-                        .andExpect(jsonPath("$[0].rating", is(8.4)))
-                        .andExpect(jsonPath("$[0].releaseDate", is("1999-10-15")))
-                        .andExpect(jsonPath("$[0].genres", hasSize(2)))
-                        .andExpect(jsonPath("$[0].likes", is(5)))
-                        .andExpect(jsonPath("$[0].dislikes", is(1)))
-                        .andExpect(jsonPath("$[0].neutrals", is(2)));
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$", hasSize(1)))
+                                .andExpect(jsonPath("$[0].movieId", is(550)))
+                                .andExpect(jsonPath("$[0].title", is("Fight Club")))
+                                .andExpect(jsonPath("$[0].score", is(8)))
+                                .andExpect(jsonPath("$[0].posterPath", is("https://someImagetoMovie.jpg")))
+                                .andExpect(jsonPath("$[0].description", is("Insomnia and soap.")))
+                                .andExpect(jsonPath("$[0].rating", is(8.4)))
+                                .andExpect(jsonPath("$[0].releaseDate", is("1999-10-15")))
+                                .andExpect(jsonPath("$[0].genres", hasSize(2)))
+                                .andExpect(jsonPath("$[0].likes", is(5)))
+                                .andExpect(jsonPath("$[0].dislikes", is(1)))
+                                .andExpect(jsonPath("$[0].neutrals", is(2)));
         }
 
         @Test
@@ -313,69 +315,55 @@ class SessionControllerTest {
 
         @Test
         void getSessionTime_validSessionCode_returnsOk() throws Exception {
-            given(sessionService.getSessionTiming("test123")).willReturn(30);
+                given(sessionService.getSessionTiming("test123")).willReturn(30);
 
-            MockHttpServletRequestBuilder getRequest = get("/session/test123/time")
-                    .contentType(MediaType.APPLICATION_JSON);
+                MockHttpServletRequestBuilder getRequest = get("/session/test123/time")
+                                .contentType(MediaType.APPLICATION_JSON);
 
-            mockMvc.perform(getRequest)
-                    .andExpect(status().isOk())
-                    .andExpect(content().string("30"));
+                mockMvc.perform(getRequest)
+                                .andExpect(status().isOk())
+                                .andExpect(content().string("30"));
         }
 
         @Test
         void getCurrentMovie_validSessionCode_returnsMovie() throws Exception {
-                Movie movie = new Movie(
-                550L,
-                "Fight Club",
-                "Insomnia and soap.",
-                "https://image.tmdb.org/t/p/w500/fight-club.jpg",
-                8.4,
-                "1999-10-15",
-                List.of("Drama", "Thriller"),
-                List.of(new SimilarMovie(
-                551L,
-                "Se7en",
-                "https://image.tmdb.org/t/p/w500/se7en.jpg",
-                8.3,
-                "1995-09-22")));
 
-                given(sessionService.getCurrentMovie("1")).willReturn(movie);
+                given(sessionService.getCurrentMovie("1")).willReturn(testMovie);
 
                 MockHttpServletRequestBuilder getRequest = get("/session/1/current")
-                .contentType(MediaType.APPLICATION_JSON);
+                                .contentType(MediaType.APPLICATION_JSON);
 
                 mockMvc.perform(getRequest)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.movieId", is(550)))
-                .andExpect(jsonPath("$.title", is("Fight Club")))
-                .andExpect(jsonPath("$.description", is("Insomnia and soap.")));
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.movieId", is(550)))
+                                .andExpect(jsonPath("$.title", is("Fight Club")))
+                                .andExpect(jsonPath("$.description", is("Insomnia and soap.")));
         }
 
         @Test
         void getCurrentMovie_invalidSessionCode_returnsNotFound() throws Exception {
                 given(sessionService.getCurrentMovie("404"))
-                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND,
-                "Session could not be found."));
+                                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                                "Session could not be found."));
 
                 MockHttpServletRequestBuilder getRequest = get("/session/404/current")
-                .contentType(MediaType.APPLICATION_JSON);
+                                .contentType(MediaType.APPLICATION_JSON);
 
                 mockMvc.perform(getRequest)
-                .andExpect(status().isNotFound());
+                                .andExpect(status().isNotFound());
         }
 
         @Test
         void getCurrentMovie_notStarted_returnsConflict() throws Exception {
                 given(sessionService.getCurrentMovie("nostart"))
-                .willThrow(new ResponseStatusException(HttpStatus.CONFLICT,
-                "Session has not started yet"));
+                                .willThrow(new ResponseStatusException(HttpStatus.CONFLICT,
+                                                "Session has not started yet"));
 
                 MockHttpServletRequestBuilder getRequest = get("/session/nostart/current")
-                .contentType(MediaType.APPLICATION_JSON);
+                                .contentType(MediaType.APPLICATION_JSON);
 
                 mockMvc.perform(getRequest)
-                .andExpect(status().isConflict());
+                                .andExpect(status().isConflict());
         }
 
         @Test
@@ -383,7 +371,29 @@ class SessionControllerTest {
                 Mockito.doNothing().when(sessionService).leaveSession("test1234", "userToken");
 
                 mockMvc.perform(delete("/session/test1234")
-                        .header("Authorization", "userToken"))
-                        .andExpect(status().isNoContent());
+                                .header("Authorization", "userToken"))
+                                .andExpect(status().isNoContent());
+        }
+
+        @Test
+        void skipTimer_allUsersVoted_returnsOk() throws Exception {
+
+                Mockito.when(sessionService.forceNextMovie(Mockito.anyString(), Mockito.anyString()))
+                                .thenReturn(testMovie);
+
+                mockMvc.perform(post("/session/test1234/next/request")
+                                .header("Authorization", "userToken"))
+                                .andExpect(status().isOk());
+        }
+
+        @Test
+        void skipTimer_invalidSessionCode_returnsNotFound() throws Exception {
+                Mockito.doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Session could not be found."))
+                                .when(sessionService).forceNextMovie("1234", "userToken");
+
+                mockMvc.perform(post("/session/1234/next/request")
+                                .header("Authorization", "userToken"))
+                                .andExpect(status().isNotFound());
         }
 }
