@@ -18,7 +18,8 @@ class MovieTest {
                 7.0,
                 "2001-01-01",
                 List.of("Drama"),
-                List.of(new SimilarMovie(9L, "Related", "/related.jpg", 7.8, "2000-05-05"))
+                List.of(new SimilarMovie(9L, "Related", "/related.jpg", 7.8, "2000-05-05")),
+                List.of("Initial Provider")
         );
 
         movie.setId(2L);
@@ -29,7 +30,7 @@ class MovieTest {
         movie.setReleaseDate("2002-02-02");
         movie.setGenres(List.of("Comedy", "Action"));
         movie.setSimilarMovies(List.of(new SimilarMovie(10L, "Other", "/other.jpg", 7.2, "2003-03-03")));
-
+        movie.setStreamingProviders(List.of("Updated Provider"));
         assertEquals(2L, movie.getId());
         assertEquals("Updated Title", movie.getTitle());
         assertEquals("Updated Overview", movie.getOverview());

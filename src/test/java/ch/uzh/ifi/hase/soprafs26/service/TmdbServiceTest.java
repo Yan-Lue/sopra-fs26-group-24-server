@@ -34,6 +34,7 @@ class TmdbServiceTest {
   private String discoverResponse = "{\"results\":[]}";
   private String movieResponse = "null";
   private String similarMovieResponse = "{\"results\":[]}";
+  private String watchProvidersResponse = "{\"results\":{}}";
   private URI lastDiscoverUri;
 
   @BeforeEach
@@ -50,6 +51,11 @@ class TmdbServiceTest {
       if (exchange.getRequestURI().getPath().endsWith("/recommendations")) {
         similarMovieCalls.incrementAndGet();
         sendJson(exchange, similarMovieResponse);
+        return;
+      }
+
+      if (exchange.getRequestURI().getPath().endsWith("/watch/providers")) {
+        sendJson(exchange, watchProvidersResponse);
         return;
       }
 
@@ -140,6 +146,18 @@ class TmdbServiceTest {
           ]
         }
         """;
+    watchProvidersResponse = """
+        {
+          "results": {
+            "CH": {
+              "flatrate": [
+                { "provider_name": "Netflix" },
+                { "provider_name": "Amazon Prime" }
+              ]
+            }
+          }
+        }
+        """;
     similarMovieResponse = """
         {
           "results": [
@@ -170,6 +188,7 @@ class TmdbServiceTest {
     assertEquals("https://image.tmdb.org/t/p/w500/se7en.jpg", first.getSimilarMovies().get(0).getPosterPath());
     assertEquals(8.3, first.getSimilarMovies().get(0).getRating());
     assertEquals("1995-09-22", first.getSimilarMovies().get(0).getReleaseDate());
+    assertEquals(List.of("Netflix", "Amazon Prime"), first.getStreamingProviders());
 
     assertEquals(first, second);
     assertEquals(1, movieCalls.get());

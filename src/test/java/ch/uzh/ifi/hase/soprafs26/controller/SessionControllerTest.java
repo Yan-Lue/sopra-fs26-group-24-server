@@ -168,7 +168,8 @@ class SessionControllerTest {
                                                 "Se7en",
                                                 "https://image.tmdb.org/t/p/w500/se7en.jpg",
                                                 8.3,
-                                                "1995-09-22")));
+                                                "1995-09-22")),
+                                List.of("Netflix", "Amazon Prime"));
 
                 given(sessionService.getNextMovie("1")).willReturn(movie);
 
@@ -338,7 +339,9 @@ class SessionControllerTest {
                 "Se7en",
                 "https://image.tmdb.org/t/p/w500/se7en.jpg",
                 8.3,
-                "1995-09-22")));
+                "1995-09-22")),
+                List.of("Netflix", "Amazon Prime")
+        );
 
                 given(sessionService.getCurrentMovie("1")).willReturn(movie);
 

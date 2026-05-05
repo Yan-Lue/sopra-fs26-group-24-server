@@ -11,6 +11,7 @@ public class MovieGetDTO {
     private String releaseDate;
     private List<String> genres;
     private List<SimilarMovieGetDTO> similarMovies;
+    private List<String> streamingProviders;
 
     public Long getMovieId() {
         return movieId;
@@ -73,5 +74,13 @@ public class MovieGetDTO {
 
     public void setSimilarMovies(List<SimilarMovieGetDTO> similarMovies) {
         this.similarMovies = similarMovies;
+    }
+
+    public List<String> getStreamingProviders() {
+        return streamingProviders;
+    }
+
+    public void setStreamingProviders(List<String> streamingProviders) {
+        this.streamingProviders = streamingProviders;
     }
 }

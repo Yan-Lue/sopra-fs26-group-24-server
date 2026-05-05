@@ -12,9 +12,10 @@ public class Movie {
     private String releaseDate;
     private List<String> genres;
     private List<SimilarMovie> similarMovies;
+    private List<String> streamingProviders;
 
     public Movie(Long id, String title, String overview, String posterPath,
-                 Double rating, String releaseDate, List<String> genres, List<SimilarMovie> similarMovies) {
+                 Double rating, String releaseDate, List<String> genres, List<SimilarMovie> similarMovies, List<String> streamingProviders) {
         this.id = id;
         this.title = title;
         this.overview = overview;
@@ -23,6 +24,7 @@ public class Movie {
         this.releaseDate = releaseDate;
         this.genres = genres;
         this.similarMovies = similarMovies;
+        this.streamingProviders = streamingProviders;
     }
 
     public Long getId() {
@@ -87,5 +89,13 @@ public class Movie {
 
     public void setSimilarMovies(List<SimilarMovie> similarMovies) {
         this.similarMovies = similarMovies;
+    }
+
+    public List<String> getStreamingProviders() {
+        return streamingProviders;
+    }
+
+    public void setStreamingProviders(List<String> streamingProviders) {
+        this.streamingProviders = streamingProviders;
     }
 }

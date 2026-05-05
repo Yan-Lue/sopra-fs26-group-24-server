@@ -203,7 +203,9 @@ class SessionServiceTest {
                                 8.8,
                                 "1999-10-15",
                                 List.of("Drama"),
-                                List.of(new SimilarMovie(66L, "Se7en", "/poster2.jpg", 8.3, "1995-09-22")));
+                                List.of(new SimilarMovie(66L, "Se7en", "/poster2.jpg", 8.3, "1995-09-22")),
+                                List.of("Netflix", "Amazon Prime")
+                        );
 
                 Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
                 Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
@@ -238,7 +240,9 @@ class SessionServiceTest {
                                 8.8,
                                 "1999-10-15",
                                 List.of("Drama"),
-                                List.of(new SimilarMovie(66L, "Se7en", "/poster2.jpg", 8.3, "1995-09-22")));
+                                List.of(new SimilarMovie(66L, "Se7en", "/poster2.jpg", 8.3, "1995-09-22")),
+                                List.of("Netflix", "Amazon Prime")
+                        );
 
                 Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
                 Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
@@ -399,7 +403,9 @@ class SessionServiceTest {
                                 7.5,
                                 "2020-01-01",
                                 List.of("Drama"),
-                                List.of(new SimilarMovie(111L, "Sim A", "https://img/simA.jpg", 6.8, "2019-01-01")));
+                                List.of(new SimilarMovie(111L, "Sim A", "https://img/simA.jpg", 6.8, "2019-01-01")),
+                                List.of("Streaming A", "Streaming B")
+                        );
 
                 Movie movie2 = new Movie(
                                 22L,
@@ -409,7 +415,9 @@ class SessionServiceTest {
                                 8.4,
                                 "2021-01-01",
                                 List.of("Action"),
-                                List.of());
+                                List.of(),
+                                List.of("Streaming C", "Streaming D")
+                        );
 
                 Mockito.when(sessionRepository.findSessionBySessionCode("test1234")).thenReturn(session);
                 Mockito.when(tmdbService.getMovieDetails(11L)).thenReturn(movie1);
@@ -470,7 +478,7 @@ class SessionServiceTest {
 
                 Movie movie = new Movie(
                                 11L, "Movie A", "Desc A", "https://img/a.jpg", 7.5, "2020-01-01", List.of("Drama"),
-                                List.of());
+                                List.of(), List.of("Initial Provider"));
 
                 Mockito.when(sessionRepository.findSessionBySessionCode("test1234")).thenReturn(session);
                 Mockito.when(tmdbService.getMovieDetails(11L)).thenReturn(movie);
@@ -542,7 +550,9 @@ class SessionServiceTest {
                                 8.8,
                                 "1999-10-15",
                                 List.of("Drama"),
-                                List.of());
+                                List.of(),
+                                List.of()
+                        );
 
                 Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
                 Mockito.when(tmdbService.getMovieDetails(55L)).thenReturn(movie);
