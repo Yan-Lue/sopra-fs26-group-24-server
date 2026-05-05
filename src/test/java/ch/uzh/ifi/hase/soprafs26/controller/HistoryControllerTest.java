@@ -149,7 +149,7 @@ class HistoryControllerTest {
 
     @Test
     void getMovieById_returnsMovie() throws Exception {
-        Movie movie = new Movie(10L, "Inception", "desc", "path", 5.0, "2010", List.of(), List.of());
+        Movie movie = new Movie(10L, "Inception", "desc", "path", 5.0, "2010", List.of(), List.of(), List.of());
 
         when(tmdbService.getMovieDetails(10L)).thenReturn(movie);
 

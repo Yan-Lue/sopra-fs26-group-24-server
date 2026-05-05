@@ -141,6 +141,20 @@ public class TmdbService {
                                         "TMDB movie details could not be loaded");
                 }
 
+                WatchProvidersResponse watchProvidersResponse = restClient.get()
+                                .uri(uriBuilder -> uriBuilder
+                                                .path("/movie/{movieId}/watch/providers")
+                                                .queryParam("api_key", apiKey)
+                                                .build(movieId))
+                                .retrieve()
+                                .body(WatchProvidersResponse.class);
+                if (watchProvidersResponse == null) {
+                        throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                                        "TMDB watch providers could not be loaded");
+                }
+
+                List<String> streamingProviders = extractStreamingProviders(watchProvidersResponse, "CH");
+
                 SimilarMovieResponse similarMovieResponse = restClient.get()
                                 .uri(uriBuilder -> uriBuilder
                                                 .path("/movie/{movieId}/recommendations")
@@ -160,7 +174,8 @@ public class TmdbService {
                                 response.releaseDate(),
                                 response.genres() == null ? List.of()
                                                 : response.genres().stream().map(TmdbGenre::name).toList(),
-                                mapSimilarMovies(similarMovieResponse));
+                                mapSimilarMovies(similarMovieResponse),
+                                streamingProviders);
 
                 movieCache.put(movieId, new CachedMovie(movie, now + CACHE_TTL_MILLIS));
                 return movie;
@@ -207,6 +222,23 @@ public class TmdbService {
                                 .toList();
         }
 
+        private List<String> extractStreamingProviders(WatchProvidersResponse response, String region) {
+                if (response == null || response.results() == null) {
+                        return List.of();
+                }
+
+                RegionWatchProviders regionProviders = response.results().get(region);
+                if (regionProviders == null || regionProviders.flatrate() == null || regionProviders.flatrate().isEmpty()) {
+                        return List.of();
+                }
+
+                return regionProviders.flatrate().stream()
+                                .map(WatchProvider::providerName)
+                                .filter(Objects::nonNull)
+                                .distinct()
+                                .toList();
+        }
+
         private record CachedMovie(Movie movie, long expiresAt) {
         }
 
@@ -230,6 +262,15 @@ public class TmdbService {
         }
 
         private record SimilarMovieResponse(List<SimilarMovieResult> results) {
+        }
+
+        private record WatchProvidersResponse(Map<String, RegionWatchProviders> results) {
+        }
+
+        private record RegionWatchProviders(List<WatchProvider> flatrate) {
+        }
+
+        private record WatchProvider(@JsonProperty("provider_name") String providerName) {
         }
 
         private record SimilarMovieResult(

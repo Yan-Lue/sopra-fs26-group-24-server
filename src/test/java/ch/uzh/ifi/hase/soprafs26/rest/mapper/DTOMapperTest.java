@@ -91,7 +91,8 @@ class DTOMapperTest {
                         "Se7en",
                         "https://image.tmdb.org/t/p/w500/se7en.jpg",
                         8.3,
-                        "1995-09-22"))
+                        "1995-09-22")),
+                List.of("Netflix", "Amazon Prime")
         );
 
         MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);

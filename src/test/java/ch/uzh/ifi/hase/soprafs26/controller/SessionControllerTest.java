@@ -80,7 +80,8 @@ class SessionControllerTest {
                                                 "Se7en",
                                                 "https://image.tmdb.org/t/p/w500/se7en.jpg",
                                                 8.3,
-                                                "1995-09-22")));
+                                                "1995-09-22")),
+                                List.of("Netflix", "Amazon Prime"));
         }
 
         // When creating new Session correct Session Credentials get returned and Status
@@ -172,7 +173,6 @@ class SessionControllerTest {
 
         @Test
         void getNextMovie_validSessionCode_returnsMovie() throws Exception {
-
                 given(sessionService.getNextMovie("1")).willReturn(testMovie);
 
                 MockHttpServletRequestBuilder getRequest = get("/session/1/next")
@@ -327,7 +327,6 @@ class SessionControllerTest {
 
         @Test
         void getCurrentMovie_validSessionCode_returnsMovie() throws Exception {
-
                 given(sessionService.getCurrentMovie("1")).willReturn(testMovie);
 
                 MockHttpServletRequestBuilder getRequest = get("/session/1/current")
