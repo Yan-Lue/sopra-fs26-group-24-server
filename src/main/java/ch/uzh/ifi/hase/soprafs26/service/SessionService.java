@@ -319,7 +319,6 @@ public class SessionService {
         Integer joinedUsers = session.getJoinedUsers();
 
         if (joinedUsers != null && actualVotes < joinedUsers) {
-            System.out.println("DB Votes: " + actualVotes + " Joined: " + joinedUsers);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not all users have voted yet");
         }
 
@@ -502,7 +501,6 @@ public class SessionService {
             broadcastSessionEnded(sessionCode);
         }
 
-        System.out.println("Votes received for movie " + votePutDTO.getMovieId() + ": " + votesReceived);
     }
 
     public List<MovieResultDTO> calculateFullLeaderboard(String sessionCode) {
