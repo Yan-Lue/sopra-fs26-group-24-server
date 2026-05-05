@@ -22,7 +22,6 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-
 import java.util.Optional;
 import java.util.Collections;
 import java.util.List;
@@ -243,82 +242,120 @@ class UserControllerTest {
 	}
 
 	@Test
-    void updateUser_validInput_userUpdated() throws Exception {
-        User updatedUser = new User();
-        updatedUser.setId(1L);
-        updatedUser.setName("Updated Name");
-        updatedUser.setUsername("updatedUsername");
-        updatedUser.setBio("Updated bio");
-        updatedUser.setStatus(UserStatus.ONLINE);
+	void updateUser_validInput_userUpdated() throws Exception {
+		User updatedUser = new User();
+		updatedUser.setId(1L);
+		updatedUser.setName("Updated Name");
+		updatedUser.setUsername("updatedUsername");
+		updatedUser.setBio("Updated bio");
+		updatedUser.setStatus(UserStatus.ONLINE);
 
-        UserPutDTO userPutDTO = new UserPutDTO();
-        userPutDTO.setName("Updated Name");
-        userPutDTO.setUsername("updatedUsername");
-        userPutDTO.setBio("Updated bio");
-        userPutDTO.setEmail("updated@test.com");
-        userPutDTO.setOldPassword("oldPassword");
-        userPutDTO.setNewPassword("newPassword");
-        userPutDTO.setStatus("ONLINE");
+		UserPutDTO userPutDTO = new UserPutDTO();
+		userPutDTO.setName("Updated Name");
+		userPutDTO.setUsername("updatedUsername");
+		userPutDTO.setBio("Updated bio");
+		userPutDTO.setEmail("updated@test.com");
+		userPutDTO.setOldPassword("oldPassword");
+		userPutDTO.setNewPassword("newPassword");
+		userPutDTO.setStatus("ONLINE");
 
-        given(userService.updateUser(
-                Mockito.eq(1L),
-                Mockito.any(User.class),
-                Mockito.eq("oldPassword"),
-                Mockito.eq("newPassword"),
-                Mockito.eq("ONLINE")
-        )).willReturn(updatedUser);
+		given(userService.updateUser(
+				Mockito.eq(1L),
+				Mockito.any(User.class),
+				Mockito.eq("oldPassword"),
+				Mockito.eq("newPassword"),
+				Mockito.eq("ONLINE"))).willReturn(updatedUser);
 
-        MockHttpServletRequestBuilder putRequest = put("/users/1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPutDTO));
+		MockHttpServletRequestBuilder putRequest = put("/users/1")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(asJsonString(userPutDTO));
 
-        mockMvc.perform(putRequest)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.name", is("Updated Name")))
-                .andExpect(jsonPath("$.username", is("updatedUsername")))
-                .andExpect(jsonPath("$.bio", is("Updated bio")))
-                .andExpect(jsonPath("$.status", is("ONLINE")));
-    }
+		mockMvc.perform(putRequest)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id", is(1)))
+				.andExpect(jsonPath("$.name", is("Updated Name")))
+				.andExpect(jsonPath("$.username", is("updatedUsername")))
+				.andExpect(jsonPath("$.bio", is("Updated bio")))
+				.andExpect(jsonPath("$.status", is("ONLINE")));
+	}
 
-    @Test
-    void updateUser_invalidEmail_returnsBadRequest() throws Exception {
-        UserPutDTO userPutDTO = new UserPutDTO();
-        userPutDTO.setName("Updated Name");
-        userPutDTO.setUsername("updatedUsername");
-        userPutDTO.setEmail("invalid-email");
-        userPutDTO.setStatus("ONLINE");
+	@Test
+	void updateUser_invalidEmail_returnsBadRequest() throws Exception {
+		UserPutDTO userPutDTO = new UserPutDTO();
+		userPutDTO.setName("Updated Name");
+		userPutDTO.setUsername("updatedUsername");
+		userPutDTO.setEmail("invalid-email");
+		userPutDTO.setStatus("ONLINE");
 
-        MockHttpServletRequestBuilder putRequest = put("/users/1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPutDTO));
+		MockHttpServletRequestBuilder putRequest = put("/users/1")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(asJsonString(userPutDTO));
 
-        mockMvc.perform(putRequest)
-                .andExpect(status().isBadRequest());
-    }
+		mockMvc.perform(putRequest)
+				.andExpect(status().isBadRequest());
+	}
 
-    @Test
-    void deleteUser_validId_noContent() throws Exception {
-        MockHttpServletRequestBuilder deleteRequest = delete("/users/1")
-                .contentType(MediaType.APPLICATION_JSON);
+	@Test
+	void deleteUser_validId_noContent() throws Exception {
+		MockHttpServletRequestBuilder deleteRequest = delete("/users/1")
+				.contentType(MediaType.APPLICATION_JSON);
 
-        mockMvc.perform(deleteRequest)
-                .andExpect(status().isNoContent());
+		mockMvc.perform(deleteRequest)
+				.andExpect(status().isNoContent());
 
-        Mockito.verify(userService, Mockito.times(1)).deleteUser(1L);
-    }
+		Mockito.verify(userService, Mockito.times(1)).deleteUser(1L);
+	}
 
-    @Test
-    void deleteUser_invalidId_notFound() throws Exception {
-        Mockito.doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User with userid 999 not found"))
-                .when(userService).deleteUser(999L);
+	@Test
+	void deleteUser_invalidId_notFound() throws Exception {
+		Mockito.doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User with userid 999 not found"))
+				.when(userService).deleteUser(999L);
 
-        MockHttpServletRequestBuilder deleteRequest = delete("/users/999")
-                .contentType(MediaType.APPLICATION_JSON);
+		MockHttpServletRequestBuilder deleteRequest = delete("/users/999")
+				.contentType(MediaType.APPLICATION_JSON);
 
-        mockMvc.perform(deleteRequest)
-                .andExpect(status().isNotFound());
-    }
+		mockMvc.perform(deleteRequest)
+				.andExpect(status().isNotFound());
+	}
+
+	// GET Mapping /users/search successful 200 - returns DTO
+	@Test
+	void searchUsers_returnsUserSearchDTOs() throws Exception {
+		User user = new User();
+		user.setId(1L);
+		user.setName("Test User");
+		user.setUsername("testUsername");
+		user.setBio("A test bio");
+		user.setToken("1");
+		user.setStatus(UserStatus.ONLINE);
+		user.setEmail("test@test.com");
+		user.setPassword("hashedPassword");
+
+		List<User> allUsers = Collections.singletonList(user);
+
+		given(userService.getUsers()).willReturn(allUsers);
+
+		MockHttpServletRequestBuilder getRequest = get("/users/search").contentType(MediaType.APPLICATION_JSON);
+
+		mockMvc.perform(getRequest)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(1)))
+				.andExpect(jsonPath("$[0].id", is(user.getId().intValue())))
+				.andExpect(jsonPath("$[0].username", is(user.getUsername())))
+				.andExpect(jsonPath("$[0].bio", is(user.getBio())));
+	}
+
+	// GET Mapping /users/search with no users returns empty array
+	@Test
+	void searchUsers_noUsers_returnsEmptyArray() throws Exception {
+		given(userService.getUsers()).willReturn(Collections.emptyList());
+
+		MockHttpServletRequestBuilder getRequest = get("/users/search").contentType(MediaType.APPLICATION_JSON);
+
+		mockMvc.perform(getRequest)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(0)));
+	}
 
 	/**
 	 * Helper Method to convert userPostDTO into a JSON string such that the input
