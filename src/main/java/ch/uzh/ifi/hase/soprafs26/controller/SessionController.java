@@ -58,6 +58,16 @@ public class SessionController {
         return DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
     }
 
+    @PostMapping("/session/{sessionCode}/next/request")
+    @ResponseStatus(HttpStatus.OK)
+    public MovieGetDTO requestNextMovie(@PathVariable String sessionCode,
+            @RequestHeader("Authorization") String token) {
+
+        Movie movie = sessionService.forceNextMovie(sessionCode, token);
+
+        return DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+    }
+
     @GetMapping("/session/{sessionCode}/current")
     @ResponseStatus(HttpStatus.OK)
     public MovieGetDTO getCurrentMovie(@PathVariable String sessionCode) {
