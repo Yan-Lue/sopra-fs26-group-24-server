@@ -148,6 +148,10 @@ public class TmdbService {
                                                 .build(movieId))
                                 .retrieve()
                                 .body(WatchProvidersResponse.class);
+                if (watchProvidersResponse == null) {
+                        throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                                        "TMDB watch providers could not be loaded");
+                }
 
                 List<String> streamingProviders = extractStreamingProviders(watchProvidersResponse, "CH");
 
