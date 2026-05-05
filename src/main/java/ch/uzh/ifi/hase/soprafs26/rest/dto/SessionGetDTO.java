@@ -65,4 +65,14 @@ public class SessionGetDTO {
     public void setUsernames(List<String> usernames) {
         this.usernames = usernames;
     }
+
+    private String hostUsername;
+
+    public String getHostUsername() {
+        return hostUsername;
+    }
+
+    public void setHostUsername(String hostUsername) {
+        this.hostUsername = hostUsername;
+    }
 }

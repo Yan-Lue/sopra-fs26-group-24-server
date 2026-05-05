@@ -169,6 +169,7 @@ public class SessionService {
         lobbyUpdate.put("joinedUsers", session.getJoinedUsers());
         lobbyUpdate.put("maxPlayers", session.getMaxPlayers());
         lobbyUpdate.put("usernames", getJoinedUsernames(session));
+        lobbyUpdate.put("hostUsername", getHostUsername(session));
 
         // updated number of users who have already joined the session
         messagingTemplate.convertAndSend((topic(sessionCode) + "/lobby"), (Object) lobbyUpdate);
@@ -234,6 +235,7 @@ public class SessionService {
             lobbyUpdate.put("joinedUsers", session.getJoinedUsers());
             lobbyUpdate.put("maxPlayers", session.getMaxPlayers());
             lobbyUpdate.put("usernames", getJoinedUsernames(session));
+            lobbyUpdate.put("hostUsername", getHostUsername(session));
 
             messagingTemplate.convertAndSend((topic(sessionCode) + "/lobby"), (Object) lobbyUpdate);
         }
@@ -571,6 +573,19 @@ public class SessionService {
             usernames.add(guest.getUsername());
         }
         return usernames;
+    }
+
+    public String getHostUsername(Session session) {
+        Long hostId = session.getHostId();
+        if (hostId == null) return null;
+
+        User user = userRepository.findById(hostId).orElse(null);
+        if (user != null) return user.getUsername();
+
+        GuestUser guest = guestUserRepository.findById(hostId).orElse(null);
+        if (guest != null) return guest.getUsername();
+
+        return null;
     }
 
 }
