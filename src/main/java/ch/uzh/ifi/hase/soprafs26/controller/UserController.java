@@ -9,6 +9,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserSearchDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
 
@@ -44,6 +45,19 @@ public class UserController {
 			userGetDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(user));
 		}
 		return userGetDTOs;
+	}
+
+	@GetMapping("/users/search")
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	public List<UserSearchDTO> searchUsers() {
+		List<User> users = userService.getUsers();
+		List<UserSearchDTO> userSearchDTOs = new ArrayList<>();
+
+		for (User user : users) {
+			userSearchDTOs.add(DTOMapper.INSTANCE.convertEntityToUserSearchDTO(user));
+		}
+		return userSearchDTOs;
 	}
 
 	@GetMapping("/users/{userid}")
