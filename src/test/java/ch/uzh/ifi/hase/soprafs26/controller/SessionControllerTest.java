@@ -80,7 +80,8 @@ class SessionControllerTest {
                                                 "Se7en",
                                                 "https://image.tmdb.org/t/p/w500/se7en.jpg",
                                                 8.3,
-                                                "1995-09-22")));
+                                                "1995-09-22")),
+                                List.of("Netflix", "Amazon Prime"));
         }
 
         // When creating new Session correct Session Credentials get returned and Status
@@ -172,22 +173,6 @@ class SessionControllerTest {
 
         @Test
         void getNextMovie_validSessionCode_returnsMovie() throws Exception {
-                Movie movie = new Movie(
-                                550L,
-                                "Fight Club",
-                                "Insomnia and soap.",
-                                "https://image.tmdb.org/t/p/w500/fight-club.jpg",
-                                8.4,
-                                "1999-10-15",
-                                List.of("Drama", "Thriller"),
-                                List.of(new SimilarMovie(
-                                                551L,
-                                                "Se7en",
-                                                "https://image.tmdb.org/t/p/w500/se7en.jpg",
-                                                8.3,
-                                                "1995-09-22")),
-                                List.of("Netflix", "Amazon Prime"));
-
                 given(sessionService.getNextMovie("1")).willReturn(testMovie);
 
                 MockHttpServletRequestBuilder getRequest = get("/session/1/next")
@@ -342,24 +327,7 @@ class SessionControllerTest {
 
         @Test
         void getCurrentMovie_validSessionCode_returnsMovie() throws Exception {
-                Movie movie = new Movie(
-                550L,
-                "Fight Club",
-                "Insomnia and soap.",
-                "https://image.tmdb.org/t/p/w500/fight-club.jpg",
-                8.4,
-                "1999-10-15",
-                List.of("Drama", "Thriller"),
-                List.of(new SimilarMovie(
-                551L,
-                "Se7en",
-                "https://image.tmdb.org/t/p/w500/se7en.jpg",
-                8.3,
-                "1995-09-22")),
-                List.of("Netflix", "Amazon Prime")
-        );
-
-                given(sessionService.getCurrentMovie("1")).willReturn(movie);
+                given(sessionService.getCurrentMovie("1")).willReturn(testMovie);
 
                 MockHttpServletRequestBuilder getRequest = get("/session/1/current")
                                 .contentType(MediaType.APPLICATION_JSON);
