@@ -12,7 +12,6 @@ import ch.uzh.ifi.hase.soprafs26.constant.SessionStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.entity.Vote;
 import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.SessionRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
@@ -38,16 +37,18 @@ public class SessionService {
     private final UserRepository userRepository;
     private final VoteRepository voteRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final VoteCacheService voteCacheService;
 
     public SessionService(SessionRepository sessionRepository, TmdbService tmdbService,
-            GuestUserRepository guestUserRepository, UserRepository userRepository, VoteRepository voteRepository,
-            SimpMessagingTemplate messagingTemplate) {
+                          GuestUserRepository guestUserRepository, UserRepository userRepository, VoteRepository voteRepository,
+                          SimpMessagingTemplate messagingTemplate, VoteCacheService voteCacheService) {
         this.sessionRepository = sessionRepository;
         this.tmdbService = tmdbService;
         this.guestUserRepository = guestUserRepository;
         this.userRepository = userRepository;
         this.voteRepository = voteRepository;
         this.messagingTemplate = messagingTemplate;
+        this.voteCacheService = voteCacheService;
     }
 
     public static String topic(String sessionCode) {
@@ -266,35 +267,6 @@ public class SessionService {
         messagingTemplate.convertAndSend((topic(sessionCode) + "/vote-progress"), (Object) voteProgressPayload);
     }
 
-    private void advanceOrEndSession(String sessionCode) {
-        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
-
-        if (session == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
-        }
-
-        List<Long> movieIds = session.getSessionMovieIds();
-        Integer currentMovieIndex = session.getCurrentMovieIndex();
-
-        if (movieIds == null || movieIds.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session has no movies assigned");
-        }
-
-        if (currentMovieIndex == null || currentMovieIndex < 0) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid movie index");
-        }
-
-        if (currentMovieIndex >= movieIds.size()) {
-            session.setStatus(SessionStatus.OFFLINE);
-            sessionRepository.save(session);
-            sessionRepository.flush();
-            broadcastSessionEnded(sessionCode);
-            return;
-        }
-
-        // getNextMovie(sessionCode);
-    }
-
     public Movie forceNextMovie(String sessionCode, String token) {
         Session session = sessionRepository.findSessionBySessionCode(sessionCode);
         if (session == null) {
@@ -455,28 +427,24 @@ public class SessionService {
             }
         }
 
-        // finally we also need to check if the user has already voted for the current
-        // movie, if yes we update the existing vote instead of creating a new one
-        Vote existingVote = voteRepository.findBySessionCodeAndUserIdAndMovieId(votePutDTO.getSessionCode(),
+        voteCacheService.addVote(
+                votePutDTO.getSessionCode(),
+                votePutDTO.getMovieId(),
                 votePutDTO.getUserId(),
-                votePutDTO.getMovieId());
-        if (existingVote != null) {
-            existingVote.setScore(votePutDTO.getScore());
-            voteRepository.save(existingVote);
-            voteRepository.flush();
-        } else {
-            Vote vote = new Vote();
-            vote.setSessionCode(votePutDTO.getSessionCode());
-            vote.setUserId(votePutDTO.getUserId());
-            vote.setMovieId(votePutDTO.getMovieId());
-            vote.setScore(votePutDTO.getScore());
-            voteRepository.save(vote);
-            voteRepository.flush();
-        }
+                votePutDTO.getScore()
+        );
 
-        Integer votesReceived = voteRepository
-                .countBySessionCodeAndMovieId(votePutDTO.getSessionCode(), votePutDTO.getMovieId())
+        int persistedVotes = voteRepository.
+                countBySessionCodeAndMovieId(votePutDTO.getSessionCode(), votePutDTO.getMovieId())
                 .intValue();
+
+        int cachedVotes = voteCacheService.getCachedVoteCount(
+                votePutDTO.getSessionCode(),
+                votePutDTO.getMovieId()
+        );
+
+        int votesReceived = persistedVotes + cachedVotes;
+
         session.setVotesReceivedThisRound(votesReceived);
         sessionRepository.save(session);
         sessionRepository.flush();
@@ -484,25 +452,29 @@ public class SessionService {
         broadcastVoteProgress(
                 votePutDTO.getSessionCode(),
                 votesReceived,
-                session.getJoinedUsers());
+                session.getJoinedUsers()
+        );
 
         Integer joinedUsers = session.getJoinedUsers();
         Integer currentMovieIndex = session.getCurrentMovieIndex();
         String sessionCode = session.getSessionCode();
         List<Long> movieIds = session.getSessionMovieIds();
 
-        // this meeans that we are at the end of the game and all users have voted
         if ((currentMovieIndex == null || currentMovieIndex < 0 || currentMovieIndex >= movieIds.size())
-                && joinedUsers != null && votesReceived >= joinedUsers) {
+                && joinedUsers != null
+                && votesReceived >= joinedUsers) {
+
+            voteCacheService.flushSession(sessionCode);
+
             session.setStatus(SessionStatus.OFFLINE);
             sessionRepository.save(session);
             sessionRepository.flush();
 
             broadcastSessionEnded(sessionCode);
         }
-
     }
 
+    @Transactional
     public List<MovieResultDTO> calculateFullLeaderboard(String sessionCode) {
         Session session = getSessionByCode(sessionCode);
 
