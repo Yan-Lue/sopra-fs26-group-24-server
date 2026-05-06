@@ -53,6 +53,9 @@ class SessionServiceTest {
         @Mock
         private VoteRepository voteRepository;
 
+        @Mock
+        private VoteCacheService voteCacheService;
+
         @InjectMocks
         private SessionService sessionService;
 
@@ -770,7 +773,7 @@ class SessionServiceTest {
         }
 
         @Test
-        void vote_existingVote_updatesInsteadOfCreating() {
+        void vote_existingVote_cachedAndNoDirectSave() {
                 VotePutDTO dto = new VotePutDTO();
                 dto.setSessionCode("ABCDE");
                 dto.setToken("token");
@@ -780,21 +783,54 @@ class SessionServiceTest {
 
                 Session testSession2 = new Session();
                 testSession2.setSessionCode("ABCDE");
+                testSession2.setJoinedUsers(2);
 
                 User testUser2 = new User();
                 testUser2.setCurrentSession(testSession2);
-
-                Vote existing = new Vote();
+                testUser2.setId(1L);
 
                 Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession2);
                 Mockito.when(userRepository.findByToken("token")).thenReturn(testUser2);
-                Mockito.when(voteRepository.findBySessionCodeAndUserIdAndMovieId("ABCDE", 1L, 10L))
-                                .thenReturn(existing);
+                Mockito.when(voteRepository.countBySessionCodeAndMovieId("ABCDE", 10L)).thenReturn(0L);
 
                 sessionService.setVote(dto);
 
-                assertEquals(1, existing.getScore());
-                verify(voteRepository).save(existing);
+                verify(voteCacheService).addVote("ABCDE", 10L, 1L, 1);
+                verify(voteRepository, Mockito.never()).save(Mockito.any(Vote.class));
+        }
+
+        @Test
+        void vote_allUsersVoted_flushesCacheAndEndsSession() {
+                VotePutDTO dto = new VotePutDTO();
+                dto.setSessionCode("ENDED");
+                dto.setToken("token");
+                dto.setMovieId(55L);
+                dto.setUserId(1L);
+                dto.setScore(1);
+
+                Session endedSession = new Session();
+                endedSession.setSessionCode("ENDED");
+                endedSession.setSessionMovieIds(List.of(55L));
+                // currentMovieIndex equal to size -> session considered finished
+                endedSession.setCurrentMovieIndex(1);
+                endedSession.setJoinedUsers(1);
+
+                User user = new User();
+                user.setId(1L);
+                user.setCurrentSession(endedSession);
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ENDED")).thenReturn(endedSession);
+                Mockito.when(userRepository.findByToken("token")).thenReturn(user);
+                Mockito.when(voteRepository.countBySessionCodeAndMovieId("ENDED", 55L)).thenReturn(0L);
+
+                Mockito.when(voteCacheService.getCachedVoteCount("ENDED", 55L)).thenReturn(1);
+                Mockito.when(voteCacheService.addVote("ENDED", 55L, 1L, 1)).thenReturn(1);
+
+                sessionService.setVote(dto);
+
+                verify(voteCacheService).addVote("ENDED", 55L, 1L, 1);
+                verify(voteCacheService).flushSession("ENDED");
+                assertEquals(SessionStatus.OFFLINE, endedSession.getStatus());
         }
 
         @Test

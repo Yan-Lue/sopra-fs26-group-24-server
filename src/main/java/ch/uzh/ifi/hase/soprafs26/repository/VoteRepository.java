@@ -7,6 +7,8 @@ import org.springframework.stereotype.Repository;
 
 import ch.uzh.ifi.hase.soprafs26.entity.Vote;
 
+import java.util.List;
+
 @Repository("voteRepository")
 public interface VoteRepository extends JpaRepository<Vote, Long> {
 
@@ -23,4 +25,6 @@ public interface VoteRepository extends JpaRepository<Vote, Long> {
     Long countBySessionCodeAndMovieId(@Param("sessionCode") String sessionCode, @Param("movieId") Long movieId);
 
     Long countBySessionCodeAndMovieIdAndScore(@Param("sessionCode") String sessionCode, @Param("movieId") Long movieId, @Param("score") Integer score);
+
+    List<Vote> findBySessionCodeAndMovieIdAndUserIdIn(String sessionCode, Long movieId, List<Long> userIds);
 }
