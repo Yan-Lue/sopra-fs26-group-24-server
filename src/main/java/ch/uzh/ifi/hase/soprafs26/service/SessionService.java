@@ -188,7 +188,7 @@ public class SessionService {
                 try {
                     Long movieId = movieIds.get(currentIndex);
                     Movie movie = tmdbService.getMovieDetails(movieId);
-                    MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+                    MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
 
                     messagingTemplate.convertAndSendToUser(
                         String.valueOf(sessionPutDTO.getId()),
