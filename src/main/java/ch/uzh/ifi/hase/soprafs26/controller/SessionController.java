@@ -55,7 +55,7 @@ public class SessionController {
     public MovieGetDTO getNextMovie(@PathVariable String sessionCode) {
         Movie movie = sessionService.getNextMovie(sessionCode);
 
-        return DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+        return DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
     }
 
     @PostMapping("/session/{sessionCode}/next/request")
@@ -65,7 +65,7 @@ public class SessionController {
 
         Movie movie = sessionService.forceNextMovie(sessionCode, token);
 
-        return DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+        return DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
     }
 
     @GetMapping("/session/{sessionCode}/current")
@@ -73,7 +73,7 @@ public class SessionController {
     public MovieGetDTO getCurrentMovie(@PathVariable String sessionCode) {
         Movie movie = sessionService.getCurrentMovie(sessionCode);
 
-        return DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+        return DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
     }
 
     @PostMapping("/session/{sessionCode}/vote")

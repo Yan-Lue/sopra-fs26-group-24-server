@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs26.entity;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -28,10 +29,10 @@ public class Session implements Serializable {
     @Column(nullable = false)
     private Integer maxPlayers;
 
-    @Column(nullable = true, name = "joinedUsers")
+    @Column(name = "joinedUsers")
     private Integer joinedUsers;
 
-    @Column(nullable = true)
+    @Column()
     private Integer roundLimit;
 
     @Column(nullable = false)
@@ -60,6 +61,9 @@ public class Session implements Serializable {
     @CollectionTable(name = "session_session_movie_id", joinColumns = @JoinColumn(name = "session_id"))
     @Column(name = "movie_id", nullable = false)
     private List<Long> sessionMovieIds = new ArrayList<>();
+
+    @Column()
+    private Instant expiresAt;
 
     public Long getSessionId() {
         return sessionId;
@@ -174,4 +178,12 @@ public class Session implements Serializable {
     }
 
     //increment and reset round votes
+
+    public Instant getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(Instant expiresAt) {
+        this.expiresAt = expiresAt;
+    }
 }

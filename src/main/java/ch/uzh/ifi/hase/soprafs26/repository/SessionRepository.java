@@ -1,8 +1,12 @@
 package ch.uzh.ifi.hase.soprafs26.repository;
 
+import ch.uzh.ifi.hase.soprafs26.constant.SessionStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import java.time.Instant;
+import java.util.List;
 
 @Repository("sessionRepository")
 public interface SessionRepository extends JpaRepository<Session, Long> {
@@ -11,4 +15,5 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
 
     Session findSessionBySessionCode(String sessionCode);
 
+    List<Session> findByStatusAndExpiresAtBefore(SessionStatus status, Instant now);
 }

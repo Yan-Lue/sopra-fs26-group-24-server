@@ -36,6 +36,7 @@ public class UserService {
 
 	private final Logger log = LoggerFactory.getLogger(UserService.class);
 
+    private static final long USER_EXPIRATION_TIME = 1;
     private static final long GUEST_TTL = 8;
     private static final String GUEST_USERNAME_PREFIX = "guest_";
     private static final List<String> GUEST_NAMES = Arrays.asList(
@@ -67,6 +68,7 @@ public class UserService {
 
 		newUser.setToken(UUID.randomUUID().toString());
 		newUser.setStatus(UserStatus.ONLINE);
+        newUser.setExpiresAt(Instant.now().plus(USER_EXPIRATION_TIME, ChronoUnit.HOURS));
 		// saves the given entity but data is only persisted in the database once
 		// flush() is called
 		newUser = userRepository.save(newUser);
@@ -154,6 +156,7 @@ public class UserService {
 
 		if (existingUser.getStatus() == UserStatus.OFFLINE) {
 			existingUser.setToken(null);
+            existingUser.setExpiresAt(null);
 		}
 
 		userRepository.save(existingUser);
@@ -198,6 +201,7 @@ public class UserService {
 
 		user.setStatus(UserStatus.ONLINE);
 		user.setToken(UUID.randomUUID().toString());
+        user.setExpiresAt(Instant.now().plus(USER_EXPIRATION_TIME, ChronoUnit.HOURS));
 		userRepository.save(user);
 		userRepository.flush();
 

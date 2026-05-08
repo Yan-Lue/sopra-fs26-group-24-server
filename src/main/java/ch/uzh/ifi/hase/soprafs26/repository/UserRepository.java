@@ -25,15 +25,26 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 	List<User> findAllByCurrentSession(Session currentSession);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("""
         UPDATE User u
         SET u.token = NULL,
-            u.status = :offlineStatus
-        WHERE u.expiresAt < :now
+            u.status = :offlineStatus,
+            u.expiresAt = NULL
+        WHERE u.expiresAt IS NOT NULL
+            AND u.expiresAt < :now
+            AND u.status <> :offlineStatus
     """)
     int expireUsers(
             @Param("now") Instant now,
             @Param("offlineStatus") UserStatus offlineStatus
     );
+
+    @Modifying
+    @Query("""
+        UPDATE User u
+        SET u.currentSession = NULL
+        WHERE u.currentSession.sessionId IN: sessionIds
+    """)
+    int unlinkUsersFromSessions(@Param("sessionIds") List<Long> sessionIds);
 }

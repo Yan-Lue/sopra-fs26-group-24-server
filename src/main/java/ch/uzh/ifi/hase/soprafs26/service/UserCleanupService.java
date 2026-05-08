@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -22,7 +23,7 @@ public class UserCleanupService {
 
     @Scheduled(fixedRate = 300000)
     public void setExpiredUsers() {
-        long updated = userRepository.setByExpiresAtBefore(Instant.now());
+        long updated = userRepository.expireUsers(Instant.now(), UserStatus.OFFLINE);
         if (updated > 0) {
             log.debug("Updated {} expired users", updated);
         }

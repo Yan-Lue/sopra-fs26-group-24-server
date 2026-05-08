@@ -95,7 +95,7 @@ class DTOMapperTest {
                 List.of("Netflix", "Amazon Prime")
         );
 
-        MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+        MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
 
         assertEquals(movie.getId(), movieGetDTO.getMovieId());
         assertEquals(movie.getTitle(), movieGetDTO.getTitle());
