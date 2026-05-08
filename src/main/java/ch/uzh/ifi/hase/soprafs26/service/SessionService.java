@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.entity.Vote;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.*;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
@@ -12,7 +13,6 @@ import ch.uzh.ifi.hase.soprafs26.constant.SessionStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.GuestUser;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.entity.Vote;
 import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.SessionRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
@@ -43,8 +43,8 @@ public class SessionService {
     private final SimpMessagingTemplate messagingTemplate;
 
     public SessionService(SessionRepository sessionRepository, TmdbService tmdbService,
-            GuestUserRepository guestUserRepository, UserRepository userRepository, VoteRepository voteRepository,
-            SimpMessagingTemplate messagingTemplate) {
+                          GuestUserRepository guestUserRepository, UserRepository userRepository, VoteRepository voteRepository,
+                          SimpMessagingTemplate messagingTemplate) {
         this.sessionRepository = sessionRepository;
         this.tmdbService = tmdbService;
         this.guestUserRepository = guestUserRepository;
@@ -176,6 +176,30 @@ public class SessionService {
 
         // updated number of users who have already joined the session
         messagingTemplate.convertAndSend((topic(sessionCode) + "/lobby"), (Object) lobbyUpdate);
+
+        // If session already started, send current movie directly to this joining user.
+        Integer currentMovieIndex = session.getCurrentMovieIndex();
+        List<Long> movieIds = session.getSessionMovieIds();
+
+        if (currentMovieIndex != null && currentMovieIndex > 0 && movieIds != null && !movieIds.isEmpty()) {
+            int currentIndex = currentMovieIndex - 1;
+
+            if (currentIndex >= 0 && currentIndex < movieIds.size()) {
+                try {
+                    Long movieId = movieIds.get(currentIndex);
+                    Movie movie = tmdbService.getMovieDetails(movieId);
+                    MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+
+                    messagingTemplate.convertAndSendToUser(
+                        String.valueOf(sessionPutDTO.getId()),
+                        "/queue/current-movie",
+                        movieGetDTO
+                    );
+                } catch (Exception e) {
+                    System.err.println("Failed to send current movie to joining user: " + e.getMessage());
+                }
+            }
+        }
 
         return session;
     }
@@ -478,6 +502,7 @@ public class SessionService {
 
     }
 
+    @Transactional
     public List<MovieResultDTO> calculateFullLeaderboard(String sessionCode) {
         Session session = getSessionByCode(sessionCode);
 

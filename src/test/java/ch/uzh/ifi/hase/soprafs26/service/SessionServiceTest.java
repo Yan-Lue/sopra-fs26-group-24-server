@@ -784,17 +784,19 @@ class SessionServiceTest {
                 User testUser2 = new User();
                 testUser2.setCurrentSession(testSession2);
 
-                Vote existing = new Vote();
+                Vote existingVote = new Vote();
 
                 Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession2);
                 Mockito.when(userRepository.findByToken("token")).thenReturn(testUser2);
-                Mockito.when(voteRepository.findBySessionCodeAndUserIdAndMovieId("ABCDE", 1L, 10L))
-                                .thenReturn(existing);
+                Mockito.when(voteRepository.findBySessionCodeAndUserIdAndMovieId(
+                        "ABCDE",
+                                1L,
+                                10L))
+                        .thenReturn(existingVote);
 
                 sessionService.setVote(dto);
-
-                assertEquals(1, existing.getScore());
-                verify(voteRepository).save(existing);
+                assertEquals(1, existingVote.getScore());
+                verify(voteRepository).save(existingVote);
         }
 
         @Test

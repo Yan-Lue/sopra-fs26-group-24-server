@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ch.uzh.ifi.hase.soprafs26.entity.History;
@@ -99,6 +100,10 @@ public class HistoryService {
         if (history == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "History with historyId " + historyId + " not found.");
         }
+
+        if (history.getMovies() != null) {
+            Hibernate.initialize(history.getMovies());
+        }
         return history;
     }
 
@@ -107,7 +112,15 @@ public class HistoryService {
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UserId is required.");
         }
-        return this.historyRepository.findAllByUserId(userId);
+
+        List<History> histories = this.historyRepository.findAllByUserId(userId);
+
+        for (History history : histories) {
+            if (history.getMovies() != null) {
+                Hibernate.initialize(history.getMovies());
+            }
+        }
+        return histories;
     }
 
     public void deleteHistory(Long userId, Long historyId) {
