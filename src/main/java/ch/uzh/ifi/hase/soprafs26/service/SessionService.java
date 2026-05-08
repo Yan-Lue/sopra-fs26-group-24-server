@@ -173,6 +173,30 @@ public class SessionService {
         // updated number of users who have already joined the session
         messagingTemplate.convertAndSend((topic(sessionCode) + "/lobby"), (Object) lobbyUpdate);
 
+        // If session already started, send current movie directly to this joining user.
+        Integer currentMovieIndex = session.getCurrentMovieIndex();
+        List<Long> movieIds = session.getSessionMovieIds();
+
+        if (currentMovieIndex != null && currentMovieIndex > 0 && movieIds != null && !movieIds.isEmpty()) {
+            int currentIndex = currentMovieIndex - 1;
+
+            if (currentIndex >= 0 && currentIndex < movieIds.size()) {
+                try {
+                    Long movieId = movieIds.get(currentIndex);
+                    Movie movie = tmdbService.getMovieDetails(movieId);
+                    MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+
+                    messagingTemplate.convertAndSendToUser(
+                        String.valueOf(sessionPutDTO.getId()),
+                        "/queue/current-movie",
+                        movieGetDTO
+                    );
+                } catch (Exception e) {
+                    System.err.println("Failed to send current movie to joining user: " + e.getMessage());
+                }
+            }
+        }
+
         return session;
     }
 
