@@ -74,7 +74,7 @@ public interface DTOMapper {
 	@Mapping(source = "genres", target = "genres")
 	@Mapping(source = "similarMovies", target = "similarMovies")
 	@Mapping(source = "streamingProviders", target = "streamingProviders")
-	MovieGetDTO convertMovieGetDTOtoEntity(Movie movie);
+	MovieGetDTO convertEntitytoMovieGetDTO(Movie movie);
 
 	@Mapping(source = "id", target = "movieId")
 	SimilarMovieGetDTO convertSimilarMovieToDTO(SimilarMovie similarMovie);

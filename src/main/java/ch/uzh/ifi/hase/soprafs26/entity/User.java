@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 
 import java.io.Serializable;
+import java.time.Instant;
 
 /**
  * Internal User Representation
@@ -45,15 +46,18 @@ public class User implements Serializable {
 	@Column(nullable = false)
 	private String password;
 
-	@Column(nullable = true)
+	@Column()
 	private String bio;
 
 	@Column(nullable = false, unique = true)
 	private String email;
 
 	@ManyToOne
-	@JoinColumn(name = "current_session_id", nullable = true)
+	@JoinColumn(name = "current_session_id")
 	private Session currentSession;
+
+    @Column()
+    private Instant expiresAt;
 
 	public Long getId() {
 		return id;
@@ -126,4 +130,12 @@ public class User implements Serializable {
 	public void setCurrentSession(Session currentSession) {
 		this.currentSession = currentSession;
 	}
+
+    public Instant getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(Instant expiresAt) {
+        this.expiresAt = expiresAt;
+    }
 }

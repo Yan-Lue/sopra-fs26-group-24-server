@@ -29,7 +29,7 @@ public class HistoryController {
     @ResponseStatus(HttpStatus.OK)
     public MovieGetDTO getMovieById(@PathVariable Long movieId) {
         Movie movie = tmdbService.getMovieDetails(movieId);
-        return DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+        return DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
     }
 
     @PostMapping("/histories")

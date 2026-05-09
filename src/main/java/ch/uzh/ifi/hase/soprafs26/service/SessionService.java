@@ -20,6 +20,8 @@ import ch.uzh.ifi.hase.soprafs26.repository.VoteRepository;
 import ch.uzh.ifi.hase.soprafs26.service.model.MovieFilters;
 import jakarta.transaction.Transactional;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,7 @@ public class SessionService {
 
     private static final int DEFAULT_ROUND_LIMIT = 15;
     private static final int DEFAULT_TIME_PER_ROUND = 15;
+    private static final long SESSION_TTL = 8;
 
     private final SessionRepository sessionRepository;
     private final TmdbService tmdbService;
@@ -96,6 +99,7 @@ public class SessionService {
         newSession.setSessionToken(UUID.randomUUID().toString());
         newSession.setJoinedUsers(1); // Initialize joined users to 1 since the host is joining
         newSession.setVotesReceivedThisRound(0);
+        newSession.setExpiresAt(Instant.now().plus(SESSION_TTL, ChronoUnit.HOURS));
 
         newSession = sessionRepository.save(newSession);
         sessionRepository.flush();
@@ -184,7 +188,7 @@ public class SessionService {
                 try {
                     Long movieId = movieIds.get(currentIndex);
                     Movie movie = tmdbService.getMovieDetails(movieId);
-                    MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+                    MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
 
                     messagingTemplate.convertAndSendToUser(
                         String.valueOf(sessionPutDTO.getId()),
@@ -290,32 +294,6 @@ public class SessionService {
         messagingTemplate.convertAndSend((topic(sessionCode) + "/vote-progress"), (Object) voteProgressPayload);
     }
 
-    private void advanceOrEndSession(String sessionCode) {
-        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
-
-        if (session == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
-        }
-
-        List<Long> movieIds = session.getSessionMovieIds();
-        Integer currentMovieIndex = session.getCurrentMovieIndex();
-
-        if (movieIds == null || movieIds.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session has no movies assigned");
-        }
-
-        if (currentMovieIndex == null || currentMovieIndex < 0) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid movie index");
-        }
-
-        if (currentMovieIndex >= movieIds.size()) {
-            session.setStatus(SessionStatus.OFFLINE);
-            sessionRepository.save(session);
-            sessionRepository.flush();
-            broadcastSessionEnded(sessionCode);
-        }
-    }
-
     public Movie forceNextMovie(String sessionCode, String token) {
         Session session = sessionRepository.findSessionBySessionCode(sessionCode);
         if (session == null) {
@@ -385,7 +363,7 @@ public class SessionService {
 
         // IMPORTANT: the frontend needs to subscribe to the topic
         // "/topic/session/{sessionCode}/next" to receive the movie details when this
-        MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertMovieGetDTOtoEntity(movie);
+        MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
         messagingTemplate.convertAndSend(topic(sessionCode) + "/next", movieGetDTO);
 
         return movie;

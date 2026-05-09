@@ -34,7 +34,6 @@ public class UserController {
 
 	@GetMapping("/users")
 	@ResponseStatus(HttpStatus.OK)
-	@ResponseBody
 	public List<UserGetDTO> getAllUsers() {
 		// fetch all users in the internal representation
 		List<User> users = userService.getUsers();
@@ -49,7 +48,6 @@ public class UserController {
 
 	@GetMapping("/users/search")
 	@ResponseStatus(HttpStatus.OK)
-	@ResponseBody
 	public List<UserSearchDTO> searchUsers() {
 		List<User> users = userService.getUsers();
 		List<UserSearchDTO> userSearchDTOs = new ArrayList<>();
@@ -62,7 +60,6 @@ public class UserController {
 
 	@GetMapping("/users/{userid}")
 	@ResponseStatus(HttpStatus.OK)
-	@ResponseBody
 	public UserGetDTO getUserById(@PathVariable Long userid) {
 		User user = userService.getUserById(userid);
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
@@ -70,7 +67,6 @@ public class UserController {
 
 	@PostMapping("/register")
 	@ResponseStatus(HttpStatus.CREATED)
-	@ResponseBody
 	public UserGetDTO createUser(@Valid @RequestBody(required = false) UserPostDTO userPostDTO) {
 		// differentiate between guest User or "regular User"
 		if (userPostDTO == null || userPostDTO.getUsername() == null) {
@@ -93,7 +89,6 @@ public class UserController {
 
 	@PostMapping("/login")
 	@ResponseStatus(HttpStatus.OK)
-	@ResponseBody
 	public UserGetDTO loginUser(@RequestBody UserPostDTO userPostDTO) {
 		User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
 
@@ -108,7 +103,6 @@ public class UserController {
 
 	@PutMapping("/users/{userid}")
 	@ResponseStatus(HttpStatus.OK)
-	@ResponseBody
 	public UserGetDTO updateUser(@PathVariable Long userid, @Valid @RequestBody UserPutDTO userPutDTO) {
 		User userInput = DTOMapper.INSTANCE.convertUserPutDTOtoEntity(userPutDTO);
 
