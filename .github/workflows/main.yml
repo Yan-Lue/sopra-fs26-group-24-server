@@ -59,7 +59,8 @@ jobs:
             env_variables:
               DB_HOST: "$DB_HOST"
               DB_PORT: "$DB_PORT"
-              DB_NAME: "$DB_USER"
+              DB_NAME: "$DB_NAME"
+              DB_USER: "$DB_USER"
               DB_PASSWORD: "$DB_PASSWORD"
               TMDB_API_KEY: "$TMDB_API_KEY"
             EOF
@@ -69,7 +70,7 @@ jobs:
         uses: google-github-actions/deploy-appengine@v0.2.0
         with:
           deliverables: app.yaml
-          version: v1
+          version: v${{ github.run_number }}-${{ github.run_attempt }}
           credentials: ${{ secrets.GCP_SERVICE_CREDENTIALS }}
           project_id: ''
 
