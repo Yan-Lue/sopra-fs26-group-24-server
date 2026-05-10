@@ -54,7 +54,7 @@ jobs:
             runtime: java
             env: flex
             runtime_config:
-              operating_system: "ubuntu24"
+              operating_system: "ubuntu22"
               runtime_version: "17"
             env_variables:
               DB_HOST: "$DB_HOST"
