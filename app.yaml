@@ -1,14 +1,9 @@
 # https://cloud.google.com/appengine/docs/the-appengine-environments#comparing_high-level_features
-# https://cloud.google.com/appengine/docs/standard
+# https://cloud.google.com/appengine/docs/flexible
 
-runtime: java17
-instance_class: F2
+runtime: java
+env: flex
 
-network:
-  session_affinity: true
-
-automatic_scaling:
-  min_instances: 1
-  max_instances: 5
-  target_cpu_utilization: 0.65
-  target_throughput_utilization: 0.65
+runtime_config:
+  operating_system: "ubuntu24"
+  runtime_version: "17"

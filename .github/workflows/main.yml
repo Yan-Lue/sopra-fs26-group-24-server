@@ -42,21 +42,27 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Create app.yaml
+        env:
+          DB_HOST: "${{ secrets.DB_HOST }}"
+          DB_PORT: "${{ secrets.DB_PORT }}"
+          DB_NAME: "${{ secrets.DB_NAME }}"
+          DB_USER: "${{ secrets.DB_USER }}"
+          DB_PASSWORD: "${{ secrets.DB_PASSWORD }}"
+          TMDB_API_KEY: "${{ secrets.TMDB_API_KEY }}"
         run: |
             cat > app.yaml <<EOF
-            runtime: java17
-            instance_class: F2
+            runtime: java
+            env: flex
+            runtime_config:
+              operating_system: "ubuntu24"
+              runtime_version: "17"
             env_variables:
-              DB_HOST: "${{ secrets.DB_HOST }}"
-              DB_PORT: "${{ secrets.DB_PORT }}"
-              DB_NAME: "${{ secrets.DB_NAME }}"
-              DB_USER: "${{ secrets.DB_USER }}"
-              DB_PASSWORD: "${{ secrets.DB_PASSWORD }}"
-              TMDB_API_KEY: "${{ secrets.TMDB_API_KEY }}"
+              DB_HOST: "$DB_HOST"
+              DB_PORT: "$DB_PORT"
+              DB_NAME: "$DB_USER"
+              DB_PASSWORD: "$DB_PASSWORD"
+              TMDB_API_KEY: "$TMDB_API_KEY"
             EOF
-
-      - name: Show app.yaml
-        run: sed -n '1,50p' app.yaml
 
       - name: Deploy to App Engine
         id: deploy
