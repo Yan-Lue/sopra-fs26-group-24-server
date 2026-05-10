@@ -14,6 +14,11 @@ import org.springframework.web.socket.config.annotation.WebSocketTransportRegist
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
+    private static final long SOCKJS_DISCONNECT_DELAY_MS = 30L * 1000;
+    private static final int STREAM_BYTES_LIMIT = 512 * 1024;
+    private static final int MESSAGE_SIZE_LIMIT = 128 * 1024;
+    private static final int SEND_BUFFER_SIZE_LIMIT = 512 * 1024;
+
     @Bean(name = "wsHeartbeatScheduler")
     public TaskScheduler wsHeartbeatScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
@@ -48,17 +53,17 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 "http://127.0.0.1:3000"
             )
             .withSockJS()
-                .setStreamBytesLimit(512 * 1024) // Increase buffer size for large messages
+                .setStreamBytesLimit(STREAM_BYTES_LIMIT) // Increase buffer size for large messages
                 .setHttpMessageCacheSize(1000) // Cache more messages for better performance
-                .setDisconnectDelay(30 * 1000); // Increase disconnect delay to handle slow connections
+                .setDisconnectDelay(SOCKJS_DISCONNECT_DELAY_MS); // Increase disconnect delay to handle slow connections
     }
 
     @Override
     public void configureWebSocketTransport(WebSocketTransportRegistration registration) {
         // Configure WebSocket transport for App Engine environment
         // These settings prevent timeouts and buffer issues on cloud platforms
-        registration.setMessageSizeLimit(128 * 1024)      // 128KB max message size
-                    .setSendBufferSizeLimit(512 * 1024)   // 512KB send buffer
+        registration.setMessageSizeLimit(MESSAGE_SIZE_LIMIT)      // 128KB max message size
+                    .setSendBufferSizeLimit(SEND_BUFFER_SIZE_LIMIT)   // 512KB send buffer
                     .setSendTimeLimit(20000);               // 20s timeout for sends
     }
 
