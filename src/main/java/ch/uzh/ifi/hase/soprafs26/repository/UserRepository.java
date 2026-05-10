@@ -44,7 +44,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("""
         UPDATE User u
         SET u.currentSession = NULL
-        WHERE u.currentSession.sessionId IN: sessionIds
+        WHERE u.currentSession.sessionId IN :sessionIds
     """)
     int unlinkUsersFromSessions(@Param("sessionIds") List<Long> sessionIds);
 }
