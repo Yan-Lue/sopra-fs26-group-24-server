@@ -7,9 +7,10 @@ import ch.uzh.ifi.hase.soprafs26.repository.SessionRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
@@ -19,6 +20,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
+@ExtendWith(MockitoExtension.class)
 class SessionCleanupServiceTest {
 
     @Mock
@@ -34,7 +36,6 @@ class SessionCleanupServiceTest {
 
     @BeforeEach
     void setup() {
-        MockitoAnnotations.openMocks(this);
         sessionCleanupService = new SessionCleanupService(
                 sessionRepository,
                 userRepository,
