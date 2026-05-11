@@ -115,9 +115,8 @@ public class SessionController {
 
     @GetMapping("/session/{sessionCode}/users")
     @ResponseStatus(HttpStatus.OK)
-    public SessionStatusGetDTO getJoinedUsers(@PathVariable String sessionCode,
-            @RequestHeader("Authorization") String token) {
-        Session session = sessionService.getSessionUsers(sessionCode, token);
+    public SessionStatusGetDTO getJoinedUsers(@PathVariable String sessionCode) {
+        Session session = sessionService.getSessionUsers(sessionCode);
 
         SessionStatusGetDTO dto = DTOMapper.INSTANCE.convertEntitytoSessionStatusGetDTO(session);
         dto.setUsernames(sessionService.getJoinedUsernames(session));

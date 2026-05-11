@@ -324,31 +324,14 @@ public class SessionService {
         return getNextMovie(sessionCode);
     }
 
-    public Session getSessionUsers(String sessionCode, String token) {
+    public Session getSessionUsers(String sessionCode) {
         // use helper function to get session and check if it exists
         Session session = getSessionByCode(sessionCode);
 
-        // check if it is the host
-        Long hostId = session.getHostId();
-        User user = userRepository.findByToken(token);
-        GuestUser guestUser = guestUserRepository.findByToken(token);
-
-        if (user != null) {
-            if (!hostId.equals(user.getId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Only the host can access the list of joined users");
-            }
-        } else if (guestUser != null) {
-            if (!hostId.equals(guestUser.getId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Only the host can access the list of joined users");
-            }
-        } else {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Host not found");
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found");
         }
-
         return session;
-
     }
 
     @Transactional
