@@ -200,7 +200,8 @@ public class TmdbService {
 
                         results.add(new MovieResultDTO(movie.getId(), movie.getTitle(), score, movie.getPosterPath(),
                                         movie.getOverview(), movie.getRating(), movie.getReleaseDate(),
-                                        movie.getGenres(), similarMovieDTOs, null, null, null));
+                                        movie.getGenres(), similarMovieDTOs, movie.getStreamingProviders(),
+                                null, null, null));
                 }
 
                 return results;

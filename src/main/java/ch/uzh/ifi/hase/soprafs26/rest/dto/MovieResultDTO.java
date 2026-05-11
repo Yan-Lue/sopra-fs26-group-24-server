@@ -13,11 +13,12 @@ public class MovieResultDTO {
     private String releaseDate;
     private List<String> genres;
     private List<SimilarMovieGetDTO> similarMovies;
+    private List<String> streamingProviders;
     private Integer likes;
     private Integer dislikes;
     private Integer neutrals;
 
-    public MovieResultDTO(Long movieId, String title, Integer score, String posterPath, String description, Double rating, String releaseDate, List<String> genres, List<SimilarMovieGetDTO> similarMovies, Integer likes, Integer dislikes, Integer neutrals) {
+    public MovieResultDTO(Long movieId, String title, Integer score, String posterPath, String description, Double rating, String releaseDate, List<String> genres, List<SimilarMovieGetDTO> similarMovies, List<String> streamingProviders, Integer likes, Integer dislikes, Integer neutrals) {
         this.movieId = movieId;
         this.title = title;
         this.score = score;
@@ -27,6 +28,7 @@ public class MovieResultDTO {
         this.releaseDate = releaseDate;
         this.genres = genres;
         this.similarMovies = similarMovies;
+        this.streamingProviders = streamingProviders;
         this.likes = likes;
         this.dislikes = dislikes;
         this.neutrals = neutrals;
@@ -128,4 +130,11 @@ public class MovieResultDTO {
         this.neutrals = neutrals;
     }
 
+    public List<String> getStreamingProviders() {
+        return streamingProviders;
+    }
+
+    public void setStreamingProviders(List<String> streamingProviders) {
+        this.streamingProviders = streamingProviders;
+    }
 }

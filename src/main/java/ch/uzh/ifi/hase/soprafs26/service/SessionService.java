@@ -552,6 +552,11 @@ public class SessionService {
                             .map(ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper.INSTANCE::convertSimilarMovieToDTO)
                             .toList();
 
+            List<String> streamingProviders = movie.getStreamingProviders() == null
+                    ? List.of()
+                    : movie.getStreamingProviders().stream()
+                      .toList();
+
             MovieResultDTO dto = new MovieResultDTO(
                     movie.getId(),
                     movie.getTitle(),
@@ -562,6 +567,7 @@ public class SessionService {
                     movie.getReleaseDate(),
                     movie.getGenres(),
                     similarMovieDTOs,
+                    streamingProviders,
                     likes,
                     dislikes,
                     neutrals);

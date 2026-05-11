@@ -275,6 +275,7 @@ class SessionControllerTest {
                                 "1999-10-15",
                                 List.of("Drama", "Thriller"),
                                 List.of(),
+                                List.of(),
                                 5,
                                 1,
                                 2);
