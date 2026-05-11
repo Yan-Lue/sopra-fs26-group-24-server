@@ -9,6 +9,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionStatusGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.VotePutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.SessionService;
@@ -110,5 +111,16 @@ public class SessionController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void leaveSession(@PathVariable String sessionCode, @RequestHeader("Authorization") String token) {
         sessionService.leaveSession(sessionCode, token);
+    }
+
+    @GetMapping("/session/{sessionCode}/users")
+    @ResponseStatus(HttpStatus.OK)
+    public SessionStatusGetDTO getJoinedUsers(@PathVariable String sessionCode,
+            @RequestHeader("Authorization") String token) {
+        Session session = sessionService.getSessionUsers(sessionCode, token);
+
+        SessionStatusGetDTO dto = DTOMapper.INSTANCE.convertEntitytoSessionStatusGetDTO(session);
+        dto.setUsernames(sessionService.getJoinedUsernames(session));
+        return dto;
     }
 }

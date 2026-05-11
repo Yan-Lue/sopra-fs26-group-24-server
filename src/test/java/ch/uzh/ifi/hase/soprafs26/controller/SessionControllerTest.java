@@ -33,6 +33,7 @@ import ch.uzh.ifi.hase.soprafs26.constant.SessionStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionStatusGetDTO;
 import ch.uzh.ifi.hase.soprafs26.service.SessionService;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
@@ -394,5 +395,42 @@ class SessionControllerTest {
                 mockMvc.perform(post("/session/1234/next/request")
                                 .header("Authorization", "userToken"))
                                 .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void getSessionUsers_validSessionCode_returnsSessionStatus() throws Exception {
+                Session session = new Session();
+                session.setSessionCode("test1234");
+                session.setMaxPlayers(5);
+                session.setJoinedUsers(3);
+                session.setHostId(1L);
+
+                given(sessionService.getSessionUsers("test1234", "userToken")).willReturn(session);
+
+                // The second call for usernames
+                List<String> mockUsernames = List.of("Alice", "Bob", "Charlie");
+                given(sessionService.getJoinedUsernames(session)).willReturn(mockUsernames);
+
+                MockHttpServletRequestBuilder getRequest = get("/session/test1234/users")
+                                .header("Authorization", "userToken")
+                                .contentType(MediaType.APPLICATION_JSON);
+
+                mockMvc.perform(getRequest)
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.maxPlayers", is(5)))
+                                .andExpect(jsonPath("$.joinedUsers", is(3)))
+                                .andExpect(jsonPath("$.usernames", hasSize(3)))
+                                .andExpect(jsonPath("$.usernames[0]", is("Alice")));
+        }
+
+        @Test
+        void getSessionUsers_invalidSessionCode_returnsNotFound() throws Exception {
+                given(sessionService.getSessionUsers("invalid", "userToken"))
+                                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                                "Session could not be found."));
+                MockHttpServletRequestBuilder getRequest = get("/session/invalid/users")
+                                .header("Authorization", "userToken")
+                                .contentType(MediaType.APPLICATION_JSON);
+                mockMvc.perform(getRequest).andExpect(status().isNotFound());
         }
 }
