@@ -668,6 +668,8 @@ class SessionServiceTest {
                 Mockito.when(guestUserRepository.findByToken("GuestToken")).thenReturn(guest);
                 Mockito.when(userRepository.findAllByCurrentSession(session)).thenReturn(List.of());
                 Mockito.when(guestUserRepository.findAllByCurrentSession(session)).thenReturn(List.of());
+                Mockito.when(userRepository.countByCurrentSession(session)).thenReturn(1L);
+                Mockito.when(guestUserRepository.countByCurrentSession(session)).thenReturn(1L);
 
                 sessionService.leaveSession("ABCDE", "GuestToken");
 
@@ -702,11 +704,16 @@ class SessionServiceTest {
         @Test
         void joinSession_whenFull_throwsConflict() {
                 testSession.setJoinedUsers(5);
-
-                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
+                testSession.setMaxPlayers(5);
+                testUser.setCurrentSession(null);
 
                 SessionPutDTO dto = new SessionPutDTO();
                 dto.setToken(token);
+
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("ABCDE")).thenReturn(testSession);
+                Mockito.when(userRepository.findByToken(token)).thenReturn(testUser);
+                Mockito.when(userRepository.countByCurrentSession(testSession)).thenReturn(5L);
+                Mockito.when(guestUserRepository.countByCurrentSession(testSession)).thenReturn(0L);
 
                 ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                                 () -> sessionService.joinSession("ABCDE", dto));
@@ -722,13 +729,17 @@ class SessionServiceTest {
                 SessionPutDTO dto = new SessionPutDTO();
                 dto.setToken("Guest123");
 
-                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("ABCDE")).thenReturn(testSession);
                 Mockito.when(guestUserRepository.findByToken("Guest123")).thenReturn(testGuest);
+                Mockito.when(userRepository.countByCurrentSession(testSession)).thenReturn(1L);
+                Mockito.when(guestUserRepository.countByCurrentSession(testSession)).thenReturn(0L, 1L);
+                Mockito.when(userRepository.findAllByCurrentSession(testSession)).thenReturn(List.of());
+                Mockito.when(guestUserRepository.findAllByCurrentSession(testSession)).thenReturn(List.of(testGuest));
 
                 sessionService.joinSession("ABCDE", dto);
 
                 assertEquals(2, testSession.getJoinedUsers());
-                verify(sessionRepository).save(testSession);
+                verify(sessionRepository, Mockito.atLeastOnce()).save(testSession);
                 verify(messagingTemplate).convertAndSend(
                                 Mockito.eq("/topic/session/ABCDE/lobby"),
                                 Mockito.any(Object.class));
@@ -741,7 +752,7 @@ class SessionServiceTest {
                 SessionPutDTO dto = new SessionPutDTO();
                 dto.setToken("token");
 
-                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("ABCDE")).thenReturn(testSession);
                 Mockito.when(userRepository.findByToken("token")).thenReturn(null);
 
                 ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -860,11 +871,13 @@ class SessionServiceTest {
             dto.setId(1L);
             dto.setToken("token");
 
-            Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
+            Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("ABCDE")).thenReturn(testSession);
             Mockito.when(userRepository.findByToken("token")).thenReturn(testUser);
             Mockito.when(userRepository.findAllByCurrentSession(testSession)).thenReturn(List.of());
             Mockito.when(guestUserRepository.findAllByCurrentSession(testSession)).thenReturn(List.of());
             Mockito.when(tmdbService.getMovieDetails(550L)).thenReturn(testMovie);
+            Mockito.when(userRepository.countByCurrentSession(testSession)).thenReturn(1L, 2L);
+            Mockito.when(guestUserRepository.countByCurrentSession(testSession)).thenReturn(0L);
 
             sessionService.joinSession("ABCDE", dto);
 
@@ -886,7 +899,7 @@ class SessionServiceTest {
             SessionPutDTO dto = new SessionPutDTO();
             dto.setToken("GuestMissing");
 
-            Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
+            Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("ABCDE")).thenReturn(testSession);
             Mockito.when(guestUserRepository.findByToken("GuestMissing")).thenReturn(null);
 
             ResponseStatusException ex = assertThrows(ResponseStatusException.class,
