@@ -65,6 +65,10 @@ public interface DTOMapper {
 	@Mapping(source = "joinedUsers", target = "joinedUsers")
 	SessionGetDTO convertEntitytoSessionGetDTO(Session createdSession);
 
+	@Mapping(source = "maxPlayers", target = "maxPlayers")
+	@Mapping(source = "joinedUsers", target = "joinedUsers")
+	SessionStatusGetDTO convertEntitytoSessionStatusGetDTO(Session session);
+
 	@Mapping(source = "id", target = "movieId")
 	@Mapping(source = "title", target = "title")
 	@Mapping(source = "overview", target = "description")
@@ -84,14 +88,14 @@ public interface DTOMapper {
 	@Mapping(source = "score", target = "score")
 	Vote convertVotePutDTOtoEntity(VotePutDTO votePutDTO);
 
-    @Mapping(source = "historyId", target = "historyId")
-    @Mapping(source = "sessionName", target = "sessionName")
-    @Mapping(source = "sessionCode", target = "sessionCode")
-    @Mapping(source = "joinedUsers", target = "joinedUsers")
-    @Mapping(source = "creationDate", target = "creationDate")
-    @Mapping(source = "movies", target = "movies")
-    @Mapping(source = "user.id", target = "userId")
-    HistoryGetDTO convertEntityToHistoryGetDTO(History history);
+	@Mapping(source = "historyId", target = "historyId")
+	@Mapping(source = "sessionName", target = "sessionName")
+	@Mapping(source = "sessionCode", target = "sessionCode")
+	@Mapping(source = "joinedUsers", target = "joinedUsers")
+	@Mapping(source = "creationDate", target = "creationDate")
+	@Mapping(source = "movies", target = "movies")
+	@Mapping(source = "user.id", target = "userId")
+	HistoryGetDTO convertEntityToHistoryGetDTO(History history);
 
 	@Mapping(source = "id", target = "id")
 	@Mapping(source = "username", target = "username")

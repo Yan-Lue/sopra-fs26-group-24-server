@@ -43,8 +43,8 @@ public class SessionService {
     private final SimpMessagingTemplate messagingTemplate;
 
     public SessionService(SessionRepository sessionRepository, TmdbService tmdbService,
-                          GuestUserRepository guestUserRepository, UserRepository userRepository, VoteRepository voteRepository,
-                          SimpMessagingTemplate messagingTemplate) {
+            GuestUserRepository guestUserRepository, UserRepository userRepository, VoteRepository voteRepository,
+            SimpMessagingTemplate messagingTemplate) {
         this.sessionRepository = sessionRepository;
         this.tmdbService = tmdbService;
         this.guestUserRepository = guestUserRepository;
@@ -191,10 +191,9 @@ public class SessionService {
                     MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
 
                     messagingTemplate.convertAndSendToUser(
-                        String.valueOf(sessionPutDTO.getId()),
-                        "/queue/current-movie",
-                        movieGetDTO
-                    );
+                            String.valueOf(sessionPutDTO.getId()),
+                            "/queue/current-movie",
+                            movieGetDTO);
                 } catch (Exception e) {
                     System.err.println("Failed to send current movie to joining user: " + e.getMessage());
                 }
@@ -322,6 +321,33 @@ public class SessionService {
         }
 
         return getNextMovie(sessionCode);
+    }
+
+    public Session getSessionUsers(String sessionCode, String token) {
+        // use helper function to get session and check if it exists
+        Session session = getSessionByCode(sessionCode);
+
+        // check if it is the host
+        Long hostId = session.getHostId();
+        User user = userRepository.findByToken(token);
+        GuestUser guestUser = guestUserRepository.findByToken(token);
+
+        if (user != null) {
+            if (!hostId.equals(user.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Only the host can access the list of joined users");
+            }
+        } else if (guestUser != null) {
+            if (!hostId.equals(guestUser.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Only the host can access the list of joined users");
+            }
+        } else {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Host not found");
+        }
+
+        return session;
+
     }
 
     @Transactional
