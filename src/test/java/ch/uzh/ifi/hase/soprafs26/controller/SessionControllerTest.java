@@ -406,7 +406,7 @@ class SessionControllerTest {
                 session.setJoinedUsers(3);
                 session.setHostId(1L);
 
-                given(sessionService.getSessionUsers("test1234", "userToken")).willReturn(session);
+                given(sessionService.getSessionUsers("test1234")).willReturn(session);
 
                 // The second call for usernames
                 List<String> mockUsernames = List.of("Alice", "Bob", "Charlie");
@@ -426,7 +426,7 @@ class SessionControllerTest {
 
         @Test
         void getSessionUsers_invalidSessionCode_returnsNotFound() throws Exception {
-                given(sessionService.getSessionUsers("invalid", "userToken"))
+                given(sessionService.getSessionUsers("invalid"))
                                 .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND,
                                                 "Session could not be found."));
                 MockHttpServletRequestBuilder getRequest = get("/session/invalid/users")
