@@ -96,6 +96,9 @@ class SessionControllerTest {
                 sessionPostDTO.setHostId(1L);
 
                 given(sessionService.createSession(Mockito.any(), Mockito.any())).willReturn(testSession);
+                given(sessionService.getJoinedUsernames(Mockito.any())).willReturn(List.of("hostUser"));
+                given(sessionService.getHostUsername(Mockito.any())).willReturn("hostUser");
+
                 MockHttpServletRequestBuilder postRequest = post("/session")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(asJsonString(sessionPostDTO));
@@ -104,7 +107,8 @@ class SessionControllerTest {
                                 .andExpect(status().isCreated())
                                 .andExpect(jsonPath("$.sessionCode", is(testSession.getSessionCode())))
                                 .andExpect(jsonPath("$.sessionId", is(testSession.getSessionId().intValue())))
-                                .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())));
+                                .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())))
+                                .andExpect(jsonPath("$.hostUsername", is("hostUser")));
 
         }
 
@@ -134,6 +138,8 @@ class SessionControllerTest {
         void joinSession_validSessionCode_getSuccessful() throws Exception {
 
                 given(sessionService.joinSession(anyString(), any(SessionPutDTO.class))).willReturn(testSession);
+                given(sessionService.getJoinedUsernames(Mockito.any())).willReturn(List.of("hostUser", "joiner"));
+                given(sessionService.getHostUsername(Mockito.any())).willReturn("hostUser");
 
                 SessionPutDTO sessionPutDTO = new SessionPutDTO();
                 sessionPutDTO.setToken("userToken");
@@ -147,7 +153,8 @@ class SessionControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.sessionCode", is(testSession.getSessionCode())))
                                 .andExpect(jsonPath("$.sessionId", is(1)))
-                                .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())));
+                                .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())))
+                                .andExpect(jsonPath("$.hostUsername", is("hostUser")));
         }
 
         // Getting a session for joining not successfully
