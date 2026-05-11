@@ -139,68 +139,74 @@ public class SessionService {
 
     @Transactional
     public Session joinSession(String sessionCode, SessionPutDTO sessionPutDTO) {
-        Session session = getSessionByCode(sessionCode);
+        Session session = sessionRepository.findSessionBySessionCodeForUpdate(sessionCode);
 
-        // first check if the session is already full
-        if (session.getJoinedUsers() >= session.getMaxPlayers()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session is already full");
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
         }
 
+        String token = sessionPutDTO.getToken();
+        boolean isGuest = token.startsWith("Guest");
+
         // this should now link the session to the user
-        if (sessionPutDTO.getToken().startsWith("Guest")) {
-            GuestUser guestUser = guestUserRepository.findByToken(sessionPutDTO.getToken());
+        if (isGuest) {
+            GuestUser guestUser = guestUserRepository.findByToken(token);
             if (guestUser == null) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest user not found");
             }
-            guestUser.setCurrentSession(session);
-            guestUserRepository.save(guestUser);
-            guestUserRepository.flush();
+
+            if (!isAlreadyInSession(guestUser.getCurrentSession(), session)) {
+                ensureSessionHasCapacity(session);
+                guestUser.setCurrentSession(session);
+                guestUserRepository.save(guestUser);
+                guestUserRepository.flush();
+            }
         } else {
-            User user = userRepository.findByToken(sessionPutDTO.getToken());
+            User user = userRepository.findByToken(token);
             if (user == null) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
             }
-            user.setCurrentSession(session);
-            userRepository.save(user);
-            userRepository.flush();
-        }
 
-        session.setJoinedUsers(session.getJoinedUsers() + 1);
-        sessionRepository.save(session);
-        sessionRepository.flush();
-
-        Map<String, Object> lobbyUpdate = new HashMap<>();
-        lobbyUpdate.put("joinedUsers", session.getJoinedUsers());
-        lobbyUpdate.put("maxPlayers", session.getMaxPlayers());
-        lobbyUpdate.put("usernames", getJoinedUsernames(session));
-
-        // updated number of users who have already joined the session
-        messagingTemplate.convertAndSend((topic(sessionCode) + "/lobby"), (Object) lobbyUpdate);
-
-        // If session already started, send current movie directly to this joining user.
-        Integer currentMovieIndex = session.getCurrentMovieIndex();
-        List<Long> movieIds = session.getSessionMovieIds();
-
-        if (currentMovieIndex != null && currentMovieIndex > 0 && movieIds != null && !movieIds.isEmpty()) {
-            int currentIndex = currentMovieIndex - 1;
-
-            if (currentIndex >= 0 && currentIndex < movieIds.size()) {
-                try {
-                    Long movieId = movieIds.get(currentIndex);
-                    Movie movie = tmdbService.getMovieDetails(movieId);
-                    MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
-
-                    messagingTemplate.convertAndSendToUser(
-                            String.valueOf(sessionPutDTO.getId()),
-                            "/queue/current-movie",
-                            movieGetDTO);
-                } catch (Exception e) {
-                    System.err.println("Failed to send current movie to joining user: " + e.getMessage());
-                }
+            if (!isAlreadyInSession(user.getCurrentSession(), session)) {
+                ensureSessionHasCapacity(session);
+                user.setCurrentSession(session);
+                userRepository.save(user);
+                userRepository.flush();
             }
         }
 
+        refreshJoinedUsers(session);
+        broadcastLobbyUpdate(sessionCode,  session);
+        sendCurrentMovieToLateJoiner(session, sessionPutDTO);
+
         return session;
+    }
+
+    private void sendCurrentMovieToLateJoiner(Session session, SessionPutDTO sessionPutDTO) {
+        Integer currentMovieIndex = session.getCurrentMovieIndex();
+        List<Long> movieIds = session.getSessionMovieIds();
+
+        if (currentMovieIndex == null || currentMovieIndex <= 0 || movieIds == null || movieIds.isEmpty()) {
+            return;
+        }
+
+        int currentIndex = currentMovieIndex - 1;
+        if (currentIndex < 0 || currentIndex >= movieIds.size()) {
+            return;
+        }
+
+        try {
+            Long movieId = movieIds.get(currentIndex);
+            Movie movie = tmdbService.getMovieDetails(movieId);
+            MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
+
+            messagingTemplate.convertAndSendToUser(
+                    String.valueOf(sessionPutDTO.getId()),
+                    "/queue/current-movie",
+                    movieGetDTO);
+        } catch (Exception e) {
+            System.err.println("Failed to send current movie to joining user: " + e.getMessage());
+        }
     }
 
     @Transactional
@@ -250,12 +256,7 @@ public class SessionService {
             sessionRepository.flush();
             broadcastSessionEnded(sessionCode);
         } else {
-            int currentJoined = session.getJoinedUsers();
-            if (currentJoined > 1) {
-                session.setJoinedUsers(currentJoined - 1);
-                sessionRepository.save(session);
-                sessionRepository.flush();
-            }
+            refreshJoinedUsers(session);
 
             Map<String, Object> lobbyUpdate = new HashMap<>();
             lobbyUpdate.put("joinedUsers", session.getJoinedUsers());
@@ -552,6 +553,11 @@ public class SessionService {
                             .map(ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper.INSTANCE::convertSimilarMovieToDTO)
                             .toList();
 
+            List<String> streamingProviders = movie.getStreamingProviders() == null
+                    ? List.of()
+                    : movie.getStreamingProviders().stream()
+                      .toList();
+
             MovieResultDTO dto = new MovieResultDTO(
                     movie.getId(),
                     movie.getTitle(),
@@ -562,6 +568,7 @@ public class SessionService {
                     movie.getReleaseDate(),
                     movie.getGenres(),
                     similarMovieDTOs,
+                    streamingProviders,
                     likes,
                     dislikes,
                     neutrals);
@@ -597,6 +604,40 @@ public class SessionService {
             usernames.add(guest.getUsername());
         }
         return usernames;
+    }
+
+    private int refreshJoinedUsers(Session session) {
+        int actualJoined =
+                (int) userRepository.countByCurrentSession(session)
+                + (int) guestUserRepository.countByCurrentSession(session);
+
+        session.setJoinedUsers(actualJoined);
+        sessionRepository.save(session);
+        sessionRepository.flush();
+
+        return actualJoined;
+    }
+
+    private boolean isAlreadyInSession(Session currentSession, Session targetSession) {
+        return currentSession != null
+                && currentSession.getSessionId().equals(targetSession.getSessionId());
+    }
+
+    private void ensureSessionHasCapacity(Session session) {
+        refreshJoinedUsers(session);
+
+        if (session.getJoinedUsers() >= session.getMaxPlayers()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session is already full");
+        }
+    }
+
+    private void broadcastLobbyUpdate(String sessionCode, Session session) {
+        Map<String, Object> lobbyUpdate = new HashMap<>();
+        lobbyUpdate.put("joinedUsers", session.getJoinedUsers());
+        lobbyUpdate.put("maxPlayers", session.getMaxPlayers());
+        lobbyUpdate.put("usernames", getJoinedUsernames(session));
+
+        messagingTemplate.convertAndSend(topic(sessionCode) + "/lobby", (Object) lobbyUpdate);
     }
 
 }

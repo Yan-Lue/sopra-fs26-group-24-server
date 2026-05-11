@@ -25,6 +25,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 	List<User> findAllByCurrentSession(Session currentSession);
 
+    long countByCurrentSession(Session currentSession);
+
     @Modifying(clearAutomatically = true)
     @Query("""
         UPDATE User u

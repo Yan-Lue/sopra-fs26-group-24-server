@@ -22,6 +22,8 @@ public interface GuestUserRepository extends JpaRepository<GuestUser, Long> {
     
     List<GuestUser> findAllByCurrentSession(Session currentSession);
 
+    long countByCurrentSession(Session currentSession);
+
     @Modifying
     @Query("""
     UPDATE GuestUser g
