@@ -1,6 +1,5 @@
 package ch.uzh.ifi.hase.soprafs26.repository;
 
-import ch.uzh.ifi.hase.soprafs26.constant.SessionStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,7 +18,7 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
 
     Session findSessionBySessionCode(String sessionCode);
 
-    List<Session> findByStatusAndExpiresAtBefore(SessionStatus status, Instant now);
+    List<Session> findByExpiresAtBefore(Instant now);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

@@ -1,10 +1,10 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
-import ch.uzh.ifi.hase.soprafs26.constant.SessionStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.SessionRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.VoteRepository;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,18 +22,20 @@ public class SessionCleanupService {
     private final SessionRepository sessionRepository;
     private final UserRepository userRepository;
     private final GuestUserRepository guestUserRepository;
+    private final VoteRepository voteRepository;
 
     public SessionCleanupService(SessionRepository sessionRepository,
                                  UserRepository userRepository,
-                                 GuestUserRepository guestUserRepository) {
+                                 GuestUserRepository guestUserRepository, VoteRepository voteRepository) {
         this.sessionRepository = sessionRepository;
         this.userRepository = userRepository;
         this.guestUserRepository = guestUserRepository;
+        this.voteRepository = voteRepository;
     }
 
     @Scheduled(fixedRate = 300000)
     public void cleanupSessions() {
-        List<Session> expired = sessionRepository.findByStatusAndExpiresAtBefore(SessionStatus.OFFLINE, Instant.now());
+        List<Session> expired = sessionRepository.findByExpiresAtBefore(Instant.now());
 
         if (expired.isEmpty()) {
             return;
@@ -43,12 +45,19 @@ public class SessionCleanupService {
                 .map(Session::getSessionId)
                 .toList();
 
+        List<String> codes = expired.stream()
+                .map(Session::getSessionCode)
+                .toList();
+
         int usersUnlinked = userRepository.unlinkUsersFromSessions(ids);
         int guestUnlinked = guestUserRepository.unlinkGuestUsersFromSessions(ids);
 
         log.debug("Unlinked {} Users and Guest Users from sessions", usersUnlinked + guestUnlinked);
 
         sessionRepository.deleteAll(expired);
+        for (String code : codes) {
+            voteRepository.deleteBySessionCode(code);
+        }
         log.debug("Cleaned up {} expired sessions", ids.size());
     }
 }
