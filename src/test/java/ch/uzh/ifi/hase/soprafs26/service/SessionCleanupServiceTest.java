@@ -1,10 +1,10 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
-import ch.uzh.ifi.hase.soprafs26.constant.SessionStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.SessionRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.VoteRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,7 +16,6 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
@@ -32,6 +31,9 @@ class SessionCleanupServiceTest {
     @Mock
     private GuestUserRepository guestUserRepository;
 
+    @Mock
+    private VoteRepository voteRepository;
+
     private SessionCleanupService sessionCleanupService;
 
     @BeforeEach
@@ -39,13 +41,14 @@ class SessionCleanupServiceTest {
         sessionCleanupService = new SessionCleanupService(
                 sessionRepository,
                 userRepository,
-                guestUserRepository
+                guestUserRepository,
+                voteRepository
         );
     }
 
     @Test
     void cleanupSessions_whenNoExpiredSessions_doesNothing() {
-        Mockito.when(sessionRepository.findByStatusAndExpiresAtBefore(eq(SessionStatus.OFFLINE), any(Instant.class)))
+        Mockito.when(sessionRepository.findByExpiresAtBefore(any(Instant.class)))
                 .thenReturn(List.of());
 
         sessionCleanupService.cleanupSessions();
@@ -66,7 +69,7 @@ class SessionCleanupServiceTest {
         List<Session> expiredSessions = List.of(session1, session2);
         List<Long> sessionIds = List.of(1L, 2L);
 
-        Mockito.when(sessionRepository.findByStatusAndExpiresAtBefore(eq(SessionStatus.OFFLINE), any(Instant.class)))
+        Mockito.when(sessionRepository.findByExpiresAtBefore(any(Instant.class)))
                 .thenReturn(expiredSessions);
         Mockito.when(userRepository.unlinkUsersFromSessions(sessionIds)).thenReturn(2);
         Mockito.when(guestUserRepository.unlinkGuestUsersFromSessions(sessionIds)).thenReturn(1);
