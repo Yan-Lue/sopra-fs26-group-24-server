@@ -57,6 +57,9 @@ public class Session implements Serializable {
     @Column(nullable = false)
     private Integer votesReceivedThisRound; 
 
+    @Column()
+    private Instant roundStartedAt;
+
     @ElementCollection
     @CollectionTable(name = "session_session_movie_id", joinColumns = @JoinColumn(name = "session_id"))
     @Column(name = "movie_id", nullable = false)
@@ -177,7 +180,13 @@ public class Session implements Serializable {
         this.votesReceivedThisRound = votesReceivedThisRound;
     }
 
-    //increment and reset round votes
+    public Instant getRoundStartedAt() {
+        return roundStartedAt;
+    }
+
+    public void setRoundStartedAt(Instant roundStartedAt) {
+        this.roundStartedAt = roundStartedAt;
+    }
 
     public Instant getExpiresAt() {
         return expiresAt;

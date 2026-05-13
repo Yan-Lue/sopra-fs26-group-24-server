@@ -215,7 +215,7 @@ class SessionServiceTest {
                 storedSession.setSessionMovieIds(List.of(55L, 66L));
 
 
-                Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("1")).thenReturn(storedSession);
                 Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
                                 .thenAnswer(invocation -> invocation.getArgument(0));
                 Mockito.when(tmdbService.getMovieDetails(55L)).thenReturn(testMovie);
@@ -241,7 +241,7 @@ class SessionServiceTest {
                 storedSession.setSessionMovieIds(List.of(55L, 66L));
 
 
-                Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("1")).thenReturn(storedSession);
                 Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
                                 .thenAnswer(invocation -> invocation.getArgument(0));
                 Mockito.when(tmdbService.getMovieDetails(55L)).thenReturn(testMovie);
@@ -261,7 +261,7 @@ class SessionServiceTest {
 
         @Test
         void getNextMovie_unknownSession_throwsNotFound() {
-                Mockito.when(sessionRepository.findSessionBySessionCode("999")).thenReturn(null);
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("999")).thenReturn(null);
 
                 ResponseStatusException exception = assertThrows(
                                 ResponseStatusException.class,
@@ -278,7 +278,7 @@ class SessionServiceTest {
                 storedSession.setCurrentMovieIndex(0);
                 storedSession.setSessionMovieIds(List.of());
 
-                Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("1")).thenReturn(storedSession);
 
                 ResponseStatusException exception = assertThrows(
                                 ResponseStatusException.class,
@@ -512,7 +512,7 @@ class SessionServiceTest {
                 storedSession.setSessionMovieIds(List.of(55L, 66L));
                 storedSession.setStatus(SessionStatus.ONLINE);
 
-                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(storedSession);
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("ABCDE")).thenReturn(storedSession);
                 Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
                                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -791,6 +791,9 @@ class SessionServiceTest {
 
                 Session testSession2 = new Session();
                 testSession2.setSessionCode("ABCDE");
+                testSession2.setStatus(SessionStatus.ONLINE);
+                testSession2.setCurrentMovieIndex(1);
+                testSession2.setSessionMovieIds(List.of(10L));
 
                 User testUser2 = new User();
                 testUser2.setCurrentSession(testSession2);
@@ -821,6 +824,8 @@ class SessionServiceTest {
 
                 Mockito.when(sessionRepository.findSessionBySessionCode(sessionCode))
                                 .thenReturn(testSession);
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate(sessionCode))
+                                .thenReturn(testSession);
                 Mockito.when(userRepository.findByToken(token))
                                 .thenReturn(testUser);
                 Mockito.when(tmdbService.getMovieDetails(550L))
@@ -844,7 +849,7 @@ class SessionServiceTest {
                 session.setCurrentMovieIndex(-1);
                 session.setJoinedUsers(2);
 
-                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(session);
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("ABCDE")).thenReturn(session);
                 Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
                                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -946,7 +951,8 @@ class SessionServiceTest {
         void setVote_newVote_createsVoteAndUpdatesVoteProgress() {
             testSession.setSessionCode("ABCDE");
             testSession.setJoinedUsers(2);
-            testSession.setCurrentMovieIndex(0);
+            testSession.setStatus(SessionStatus.ONLINE);
+            testSession.setCurrentMovieIndex(1);
             testSession.setSessionMovieIds(List.of(10L));
 
             VotePutDTO dto = new VotePutDTO();

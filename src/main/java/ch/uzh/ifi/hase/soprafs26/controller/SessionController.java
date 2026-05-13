@@ -9,6 +9,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionStateGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionStatusGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.VotePutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
@@ -69,12 +70,28 @@ public class SessionController {
         return DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
     }
 
+    @PostMapping("/session/{sessionCode}/advance")
+    @ResponseStatus(HttpStatus.OK)
+    public MovieGetDTO advanceSession(@PathVariable String sessionCode,
+            @RequestHeader("Authorization") String token) {
+
+        Movie movie = sessionService.advanceToNextMovie(sessionCode, token);
+
+        return DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
+    }
+
     @GetMapping("/session/{sessionCode}/current")
     @ResponseStatus(HttpStatus.OK)
     public MovieGetDTO getCurrentMovie(@PathVariable String sessionCode) {
         Movie movie = sessionService.getCurrentMovie(sessionCode);
 
         return DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
+    }
+
+    @GetMapping("/session/{sessionCode}/state")
+    @ResponseStatus(HttpStatus.OK)
+    public SessionStateGetDTO getSessionState(@PathVariable String sessionCode) {
+        return sessionService.getSessionState(sessionCode);
     }
 
     @PostMapping("/session/{sessionCode}/vote")

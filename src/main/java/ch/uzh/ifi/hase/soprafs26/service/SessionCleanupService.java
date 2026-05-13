@@ -54,10 +54,8 @@ public class SessionCleanupService {
 
         log.debug("Unlinked {} Users and Guest Users from sessions", usersUnlinked + guestUnlinked);
 
+        voteRepository.deleteBySessionCodeIn(codes);
         sessionRepository.deleteAll(expired);
-        for (String code : codes) {
-            voteRepository.deleteBySessionCode(code);
-        }
         log.debug("Cleaned up {} expired sessions", ids.size());
     }
 }

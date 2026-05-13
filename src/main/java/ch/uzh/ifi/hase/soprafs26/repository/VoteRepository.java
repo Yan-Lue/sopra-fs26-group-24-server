@@ -28,5 +28,5 @@ public interface VoteRepository extends JpaRepository<Vote, Long> {
 
     List<Vote> findBySessionCodeAndMovieIdAndUserIdIn(String sessionCode, Long movieId, List<Long> userIds);
 
-    void deleteBySessionCode(String sessionCode);
+    void deleteBySessionCodeIn(List<String> sessionCodes);
 }
