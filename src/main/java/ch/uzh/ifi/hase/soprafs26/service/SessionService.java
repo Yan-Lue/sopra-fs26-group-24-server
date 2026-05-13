@@ -99,6 +99,7 @@ public class SessionService {
         newSession.setSessionToken(UUID.randomUUID().toString());
         newSession.setJoinedUsers(1); // Initialize joined users to 1 since the host is joining
         newSession.setVotesReceivedThisRound(0);
+        newSession.setRoundStartedAt(null);
         newSession.setExpiresAt(Instant.now().plus(SESSION_TTL, ChronoUnit.HOURS));
 
         newSession = sessionRepository.save(newSession);
@@ -177,6 +178,7 @@ public class SessionService {
 
         refreshJoinedUsers(session);
         broadcastLobbyUpdate(sessionCode,  session);
+        broadcastSessionState(sessionCode);
         sendCurrentMovieToLateJoiner(session, sessionPutDTO);
 
         return session;
@@ -283,6 +285,15 @@ public class SessionService {
 
     private void broadcastSessionEnded(String sessionCode) {
         messagingTemplate.convertAndSend(topic(sessionCode) + "/end", sessionCode);
+        broadcastSessionState(sessionCode);
+    }
+
+    private void broadcastSessionState(String sessionCode) {
+        try {
+            messagingTemplate.convertAndSend(topic(sessionCode) + "/state", getSessionState(sessionCode));
+        } catch (Exception e) {
+            System.err.println("Failed to broadcast session state: " + e.getMessage());
+        }
     }
 
     private void broadcastVoteProgress(String sessionCode, Integer votesReceived, Integer joinedUsers) {
@@ -294,24 +305,14 @@ public class SessionService {
         messagingTemplate.convertAndSend((topic(sessionCode) + "/vote-progress"), (Object) voteProgressPayload);
     }
 
+    @Transactional
     public Movie forceNextMovie(String sessionCode, String token) {
         Session session = sessionRepository.findSessionBySessionCode(sessionCode);
         if (session == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found");
         }
 
-        Long currentUserId = null;
-        User user = userRepository.findByToken(token);
-        GuestUser guestUser = guestUserRepository.findByToken(token);
-
-        if (user != null)
-            currentUserId = user.getId();
-        else if (guestUser != null)
-            currentUserId = guestUser.getId();
-
-        if (currentUserId == null || !currentUserId.equals(session.getHostId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can force the next movie");
-        }
+        ensureHost(session, token, "Only the host can force the next movie");
 
         Integer actualVotes = session.getVotesReceivedThisRound();
 
@@ -322,6 +323,33 @@ public class SessionService {
         }
 
         return getNextMovie(sessionCode);
+    }
+
+    @Transactional
+    public Movie advanceToNextMovie(String sessionCode, String token) {
+        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found");
+        }
+
+        ensureHost(session, token, "Only the host can advance the session");
+        return getNextMovie(sessionCode);
+    }
+
+    private void ensureHost(Session session, String token, String message) {
+        Long currentUserId = null;
+        User user = userRepository.findByToken(token);
+        GuestUser guestUser = guestUserRepository.findByToken(token);
+
+        if (user != null) {
+            currentUserId = user.getId();
+        } else if (guestUser != null) {
+            currentUserId = guestUser.getId();
+        }
+
+        if (currentUserId == null || !currentUserId.equals(session.getHostId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, message);
+        }
     }
 
     public Session getSessionUsers(String sessionCode) {
@@ -336,7 +364,7 @@ public class SessionService {
 
     @Transactional
     public Movie getNextMovie(String sessionCode) {
-        Session session = sessionRepository.findSessionBySessionCode(sessionCode);
+        Session session = sessionRepository.findSessionBySessionCodeForUpdate(sessionCode);
 
         if (session == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Session could not be found.");
@@ -363,6 +391,7 @@ public class SessionService {
 
         session.setCurrentMovieIndex(currentMovieIndex + 1);
         session.setVotesReceivedThisRound(0); // reset votes received for the new round
+        session.setRoundStartedAt(Instant.now());
         sessionRepository.save(session);
         sessionRepository.flush();
 
@@ -375,6 +404,7 @@ public class SessionService {
         // "/topic/session/{sessionCode}/next" to receive the movie details when this
         MovieGetDTO movieGetDTO = DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(movie);
         messagingTemplate.convertAndSend(topic(sessionCode) + "/next", movieGetDTO);
+        broadcastSessionState(sessionCode);
 
         return movie;
     }
@@ -411,6 +441,66 @@ public class SessionService {
     }
 
     @Transactional
+    public SessionStateGetDTO getSessionState(String sessionCode) {
+        Session session = getSessionByCode(sessionCode);
+
+        SessionStateGetDTO dto = new SessionStateGetDTO();
+        dto.setSessionCode(session.getSessionCode());
+        dto.setStatus(resolveClientSessionStatus(session));
+        dto.setCurrentMovieIndex(session.getCurrentMovieIndex());
+        dto.setRoundStartedAt(session.getRoundStartedAt());
+        dto.setTimePerRound(session.getTimePerRound());
+        dto.setJoinedUsers(session.getJoinedUsers());
+        dto.setVotesReceived(session.getVotesReceivedThisRound());
+        dto.setTotalRounds(session.getRoundLimit());
+        dto.setUsernames(getJoinedUsernames(session));
+
+        Movie currentMovie = tryGetCurrentMovie(session);
+        if (currentMovie != null) {
+            dto.setCurrentMovie(DTOMapper.INSTANCE.convertEntitytoMovieGetDTO(currentMovie));
+        }
+
+        return dto;
+    }
+
+    private String resolveClientSessionStatus(Session session) {
+        if (session.getStatus() == SessionStatus.OFFLINE) {
+            Integer currentMovieIndex = session.getCurrentMovieIndex();
+            if (currentMovieIndex == null || currentMovieIndex <= 0) {
+                return "CANCELED";
+            }
+            return "ENDED";
+        }
+
+        Integer currentMovieIndex = session.getCurrentMovieIndex();
+        List<Long> movieIds = session.getSessionMovieIds();
+        if (movieIds == null || movieIds.isEmpty() || currentMovieIndex == null || currentMovieIndex <= 0) {
+            return "WAITING";
+        }
+
+        return "PLAYING";
+    }
+
+    private Movie tryGetCurrentMovie(Session session) {
+        if (session.getStatus() == SessionStatus.OFFLINE) {
+            return null;
+        }
+
+        List<Long> movieIds = session.getSessionMovieIds();
+        Integer currentMovieIndex = session.getCurrentMovieIndex();
+        if (movieIds == null || movieIds.isEmpty() || currentMovieIndex == null || currentMovieIndex <= 0) {
+            return null;
+        }
+
+        int currentIndex = currentMovieIndex - 1;
+        if (currentIndex < 0 || currentIndex >= movieIds.size()) {
+            return null;
+        }
+
+        return tmdbService.getMovieDetails(movieIds.get(currentIndex));
+    }
+
+    @Transactional
     public Session updateSessionFilters(String sessionCode, SessionFilterPutDTO dto) {
         Session session = getSessionByCode(sessionCode);
 
@@ -424,6 +514,7 @@ public class SessionService {
         session.setTimePerRound(timePerRound);
         session.setCurrentMovieIndex(0);
         session.setSessionMovieIds(sessionMovieIds);
+        session.setRoundStartedAt(null);
 
         session = sessionRepository.save(session);
         sessionRepository.flush();
@@ -463,6 +554,8 @@ public class SessionService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not part of the session");
             }
         }
+
+        validateVoteMatchesCurrentMovie(session, votePutDTO);
 
         // finally we also need to check if the user has already voted for the current
         // movie, if yes we update the existing vote instead of creating a new one
@@ -508,8 +601,32 @@ public class SessionService {
             sessionRepository.flush();
 
             broadcastSessionEnded(sessionCode);
+        } else {
+            broadcastSessionState(sessionCode);
         }
 
+    }
+
+    private void validateVoteMatchesCurrentMovie(Session session, VotePutDTO votePutDTO) {
+        if (session.getStatus() == SessionStatus.OFFLINE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session has ended");
+        }
+
+        List<Long> movieIds = session.getSessionMovieIds();
+        Integer currentMovieIndex = session.getCurrentMovieIndex();
+        if (movieIds == null || movieIds.isEmpty() || currentMovieIndex == null || currentMovieIndex <= 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session has not started yet");
+        }
+
+        int currentIndex = currentMovieIndex - 1;
+        if (currentIndex < 0 || currentIndex >= movieIds.size()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No current movie available");
+        }
+
+        Long currentMovieId = movieIds.get(currentIndex);
+        if (!currentMovieId.equals(votePutDTO.getMovieId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Vote is stale for the current round");
+        }
     }
 
     @Transactional
