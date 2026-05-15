@@ -1441,4 +1441,50 @@ class SessionServiceTest {
 
             assertEquals(List.of("regularUser", "guestUser"), usernames);
         }
+
+        @Test
+        void getHostUsername_hostIsUser_returnsUsername() {
+                testSession.setHostId(1L);
+
+                testUser.setUsername("hostUser");
+                Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+                String result = sessionService.getHostUsername(testSession);
+
+                assertEquals("hostUser", result);
+        }
+
+        @Test
+        void getHostUsername_hostIsGuest_returnsUsername() {
+                testSession.setHostId(1L);
+
+                testGuest.setUsername("guestHost");
+                Mockito.when(userRepository.findById(1L)).thenReturn(Optional.empty());
+                Mockito.when(guestUserRepository.findById(1L)).thenReturn(Optional.of(testGuest));
+
+                String result = sessionService.getHostUsername(testSession);
+
+                assertEquals("guestHost", result);
+        }
+
+        @Test
+        void getHostUsername_hostIdIsNull_returnsNull() {
+                testSession.setHostId(null);
+
+                String result = sessionService.getHostUsername(testSession);
+
+                assertNull(result);
+        }
+
+        @Test
+        void getHostUsername_hostNotFound_returnsNull() {
+                testSession.setHostId(99L);
+
+                Mockito.when(userRepository.findById(99L)).thenReturn(Optional.empty());
+                Mockito.when(guestUserRepository.findById(99L)).thenReturn(Optional.empty());
+
+                String result = sessionService.getHostUsername(testSession);
+
+                assertNull(result);
+        }
 }
