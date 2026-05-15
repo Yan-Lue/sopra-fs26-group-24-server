@@ -204,6 +204,104 @@ class UserServiceTest {
 	}
 
 	@Test
+	void updateUser_sameNewPasswordAsOld_throwsBadRequest() {
+		User existingUser = new User();
+		existingUser.setId(1L);
+		existingUser.setPassword(new BCryptPasswordEncoder(12).encode("oldPass"));
+		existingUser.setEmail("old@test.com");
+		existingUser.setUsername("oldUsername");
+		existingUser.setStatus(UserStatus.ONLINE);
+
+		User updateInput = new User();
+
+		Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+
+		ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+				() -> userService.updateUser(1L, updateInput, "oldPass", "oldPass", null));
+
+		assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+		assertEquals("New password must be different from the old password", ex.getReason());
+	}
+
+	@Test
+	void updateUser_duplicateUsername_throwsConflict() {
+		User existingUser = new User();
+		existingUser.setId(1L);
+		existingUser.setPassword(new BCryptPasswordEncoder(12).encode("oldPass"));
+		existingUser.setEmail("old@test.com");
+		existingUser.setUsername("oldUsername");
+		existingUser.setStatus(UserStatus.ONLINE);
+
+		User updateInput = new User();
+		updateInput.setUsername("takenUsername");
+
+		User otherUser = new User();
+		otherUser.setId(2L);
+		otherUser.setUsername("takenUsername");
+
+		Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+		Mockito.when(userRepository.findByUsername("takenUsername")).thenReturn(otherUser);
+
+		ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+				() -> userService.updateUser(1L, updateInput, null, null, null));
+
+		assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+	}
+
+	@Test
+	void updateUser_duplicateEmail_throwsConflict() {
+		User existingUser = new User();
+		existingUser.setId(1L);
+		existingUser.setPassword(new BCryptPasswordEncoder(12).encode("oldPass"));
+		existingUser.setEmail("old@test.com");
+		existingUser.setUsername("oldUsername");
+		existingUser.setStatus(UserStatus.ONLINE);
+
+		User updateInput = new User();
+		updateInput.setEmail("taken@test.com");
+
+		User otherUser = new User();
+		otherUser.setId(2L);
+		otherUser.setEmail("taken@test.com");
+
+		Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+		Mockito.when(userRepository.findByEmail("taken@test.com")).thenReturn(otherUser);
+
+		ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+				() -> userService.updateUser(1L, updateInput, null, null, null));
+
+		assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+	}
+
+	@Test
+	void updateUser_partialNameOnly_keepsExistingPasswordAndStatus() {
+		User existingUser = new User();
+		existingUser.setId(1L);
+		existingUser.setName("Old Name");
+		existingUser.setUsername("oldUsername");
+		existingUser.setEmail("old@test.com");
+		existingUser.setStatus(UserStatus.ONLINE);
+		existingUser.setToken("token");
+		existingUser.setExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS));
+		existingUser.setPassword(new BCryptPasswordEncoder(12).encode("oldPass"));
+
+		User updateInput = new User();
+		updateInput.setName("New Name");
+
+		Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+		Mockito.when(userRepository.save(Mockito.any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		User updated = userService.updateUser(1L, updateInput, null, null, null);
+
+		assertEquals("New Name", updated.getName());
+		assertEquals("oldUsername", updated.getUsername());
+		assertEquals("old@test.com", updated.getEmail());
+		assertEquals(UserStatus.ONLINE, updated.getStatus());
+		assertEquals("token", updated.getToken());
+		assertTrue(new BCryptPasswordEncoder(12).matches("oldPass", updated.getPassword()));
+	}
+
+	@Test
 	void updateUser_invalidStatus_throwsBadRequest() {
 		User existingUser = new User();
 		existingUser.setId(1L);

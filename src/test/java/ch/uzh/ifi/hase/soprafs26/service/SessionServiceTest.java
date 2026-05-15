@@ -9,6 +9,7 @@ import ch.uzh.ifi.hase.soprafs26.repository.GuestUserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.SessionRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.VoteRepository;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionStateGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.VotePutDTO;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
@@ -26,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -260,6 +262,39 @@ class SessionServiceTest {
         }
 
         @Test
+        void getNextMovie_validSession_setsRoundStartedAtAndBroadcastsState() {
+                Session storedSession = new Session();
+                storedSession.setSessionId(1L);
+                storedSession.setSessionCode("1");
+                storedSession.setStatus(SessionStatus.ONLINE);
+                storedSession.setCurrentMovieIndex(0);
+                storedSession.setSessionMovieIds(List.of(55L, 66L));
+                storedSession.setTimePerRound(15);
+                storedSession.setRoundLimit(2);
+                storedSession.setJoinedUsers(3);
+                storedSession.setVotesReceivedThisRound(2);
+
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("1")).thenReturn(storedSession);
+                Mockito.when(sessionRepository.findSessionBySessionCode("1")).thenReturn(storedSession);
+                Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+                Mockito.when(tmdbService.getMovieDetails(55L)).thenReturn(testMovie);
+                Mockito.when(userRepository.findAllByCurrentSession(storedSession)).thenReturn(List.of());
+                Mockito.when(guestUserRepository.findAllByCurrentSession(storedSession)).thenReturn(List.of());
+                Mockito.doNothing().when(messagingTemplate).convertAndSend(Mockito.anyString(), Mockito.<Object>any());
+
+                Movie result = sessionService.getNextMovie("1");
+
+                assertEquals(testMovie, result);
+                assertEquals(1, storedSession.getCurrentMovieIndex());
+                assertEquals(0, storedSession.getVotesReceivedThisRound());
+                assertNotNull(storedSession.getRoundStartedAt());
+                verify(messagingTemplate).convertAndSend(
+                                Mockito.eq("/topic/session/1/state"),
+                                Mockito.any(SessionStateGetDTO.class));
+        }
+
+        @Test
         void getNextMovie_unknownSession_throwsNotFound() {
                 Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("999")).thenReturn(null);
 
@@ -286,6 +321,108 @@ class SessionServiceTest {
 
                 assertEquals(409, exception.getStatusCode().value());
                 assertEquals("Session has no movies assigned", exception.getReason());
+                Mockito.verifyNoInteractions(tmdbService);
+        }
+
+        @Test
+        void getSessionState_waitingSession_returnsWaitingWithoutMovie() {
+                testSession.setSessionCode("ABCDE");
+                testSession.setStatus(SessionStatus.ONLINE);
+                testSession.setCurrentMovieIndex(0);
+                testSession.setSessionMovieIds(List.of(55L, 66L));
+                testSession.setTimePerRound(15);
+                testSession.setRoundLimit(2);
+                testSession.setJoinedUsers(3);
+                testSession.setVotesReceivedThisRound(0);
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
+                Mockito.when(userRepository.findAllByCurrentSession(testSession)).thenReturn(List.of());
+                Mockito.when(guestUserRepository.findAllByCurrentSession(testSession)).thenReturn(List.of());
+
+                SessionStateGetDTO state = sessionService.getSessionState("ABCDE");
+
+                assertEquals("ABCDE", state.getSessionCode());
+                assertEquals("WAITING", state.getStatus());
+                assertEquals(0, state.getCurrentMovieIndex());
+                assertNull(state.getCurrentMovie());
+                assertEquals(15, state.getTimePerRound());
+                assertEquals(2, state.getTotalRounds());
+                assertEquals(3, state.getJoinedUsers());
+                assertEquals(0, state.getVotesReceived());
+                Mockito.verifyNoInteractions(tmdbService);
+        }
+
+        @Test
+        void getSessionState_playingSession_returnsCurrentMovieAndRoundFields() {
+                Instant roundStartedAt = Instant.parse("2026-05-13T12:00:00Z");
+                testSession.setSessionCode("ABCDE");
+                testSession.setStatus(SessionStatus.ONLINE);
+                testSession.setCurrentMovieIndex(2);
+                testSession.setSessionMovieIds(List.of(111L, 550L, 333L));
+                testSession.setRoundStartedAt(roundStartedAt);
+                testSession.setTimePerRound(20);
+                testSession.setRoundLimit(3);
+                testSession.setJoinedUsers(2);
+                testSession.setVotesReceivedThisRound(1);
+
+                User joinedUser = new User();
+                joinedUser.setUsername("regularUser");
+                GuestUser joinedGuest = new GuestUser();
+                joinedGuest.setUsername("guestUser");
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
+                Mockito.when(tmdbService.getMovieDetails(550L)).thenReturn(testMovie);
+                Mockito.when(userRepository.findAllByCurrentSession(testSession)).thenReturn(List.of(joinedUser));
+                Mockito.when(guestUserRepository.findAllByCurrentSession(testSession)).thenReturn(List.of(joinedGuest));
+
+                SessionStateGetDTO state = sessionService.getSessionState("ABCDE");
+
+                assertEquals("PLAYING", state.getStatus());
+                assertEquals(2, state.getCurrentMovieIndex());
+                assertEquals(roundStartedAt, state.getRoundStartedAt());
+                assertEquals(20, state.getTimePerRound());
+                assertEquals(3, state.getTotalRounds());
+                assertEquals(2, state.getJoinedUsers());
+                assertEquals(1, state.getVotesReceived());
+                assertEquals(List.of("regularUser", "guestUser"), state.getUsernames());
+                assertNotNull(state.getCurrentMovie());
+                assertEquals(550L, state.getCurrentMovie().getMovieId());
+                assertEquals("Fight Club", state.getCurrentMovie().getTitle());
+        }
+
+        @Test
+        void getSessionState_offlineBeforeFirstMovie_returnsCanceled() {
+                testSession.setSessionCode("ABCDE");
+                testSession.setStatus(SessionStatus.OFFLINE);
+                testSession.setCurrentMovieIndex(0);
+                testSession.setSessionMovieIds(List.of(550L));
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
+                Mockito.when(userRepository.findAllByCurrentSession(testSession)).thenReturn(List.of());
+                Mockito.when(guestUserRepository.findAllByCurrentSession(testSession)).thenReturn(List.of());
+
+                SessionStateGetDTO state = sessionService.getSessionState("ABCDE");
+
+                assertEquals("CANCELED", state.getStatus());
+                assertNull(state.getCurrentMovie());
+                Mockito.verifyNoInteractions(tmdbService);
+        }
+
+        @Test
+        void getSessionState_offlineAfterFirstMovie_returnsEnded() {
+                testSession.setSessionCode("ABCDE");
+                testSession.setStatus(SessionStatus.OFFLINE);
+                testSession.setCurrentMovieIndex(1);
+                testSession.setSessionMovieIds(List.of(550L));
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
+                Mockito.when(userRepository.findAllByCurrentSession(testSession)).thenReturn(List.of());
+                Mockito.when(guestUserRepository.findAllByCurrentSession(testSession)).thenReturn(List.of());
+
+                SessionStateGetDTO state = sessionService.getSessionState("ABCDE");
+
+                assertEquals("ENDED", state.getStatus());
+                assertNull(state.getCurrentMovie());
                 Mockito.verifyNoInteractions(tmdbService);
         }
 
@@ -682,6 +819,53 @@ class SessionServiceTest {
         }
 
         @Test
+        void leaveSession_unknownUser_throwsNotFound() {
+                Session session = new Session();
+                session.setSessionId(1L);
+                session.setSessionCode("ABCDE");
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(session);
+                Mockito.when(userRepository.findByToken("UserToken")).thenReturn(null);
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> sessionService.leaveSession("ABCDE", "UserToken"));
+
+                assertEquals(404, exception.getStatusCode().value());
+                assertEquals("User not found", exception.getReason());
+        }
+
+        @Test
+        void leaveSession_userParticipantLeaves_decrementsCountAndBroadcastsLobbyUpdate() {
+                Session session = new Session();
+                session.setSessionId(1L);
+                session.setSessionCode("ABCDE");
+                session.setHostId(10L);
+                session.setJoinedUsers(3);
+                session.setMaxPlayers(10);
+
+                User user = new User();
+                user.setId(22L);
+                user.setCurrentSession(session);
+
+                Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(session);
+                Mockito.when(userRepository.findByToken("UserToken")).thenReturn(user);
+                Mockito.when(userRepository.findAllByCurrentSession(session)).thenReturn(List.of());
+                Mockito.when(guestUserRepository.findAllByCurrentSession(session)).thenReturn(List.of());
+                Mockito.when(userRepository.countByCurrentSession(session)).thenReturn(1L);
+                Mockito.when(guestUserRepository.countByCurrentSession(session)).thenReturn(1L);
+
+                sessionService.leaveSession("ABCDE", "UserToken");
+
+                assertEquals(2, session.getJoinedUsers());
+                assertNull(user.getCurrentSession());
+                verify(sessionRepository).save(session);
+                verify(userRepository).save(user);
+                verify(messagingTemplate).convertAndSend(Mockito.eq("/topic/session/ABCDE/lobby"),
+                                Mockito.<Object>any());
+        }
+
+        @Test
         void getSessionById_valid_returnsSession() {
                 testSession.setSessionId(5L);
                 Mockito.when(sessionRepository.findSessionBySessionId(5L)).thenReturn(testSession);
@@ -763,6 +947,85 @@ class SessionServiceTest {
         }
 
         @Test
+        void joinSession_unknownSession_throwsNotFound() {
+                SessionPutDTO dto = new SessionPutDTO();
+                dto.setToken(token);
+
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("MISSING")).thenReturn(null);
+
+                ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                                () -> sessionService.joinSession("MISSING", dto));
+
+                assertEquals(404, ex.getStatusCode().value());
+                assertEquals("Session could not be found.", ex.getReason());
+        }
+
+        @Test
+        void joinSession_userAlreadyInSession_doesNotSaveUserAgain() {
+                testSession.setSessionId(1L);
+                testSession.setSessionCode("ABCDE");
+                testSession.setJoinedUsers(1);
+                testSession.setMaxPlayers(5);
+                testSession.setCurrentMovieIndex(0);
+
+                testUser.setCurrentSession(testSession);
+
+                SessionPutDTO dto = new SessionPutDTO();
+                dto.setToken(token);
+
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("ABCDE")).thenReturn(testSession);
+                Mockito.when(userRepository.findByToken(token)).thenReturn(testUser);
+                Mockito.when(userRepository.countByCurrentSession(testSession)).thenReturn(1L);
+                Mockito.when(guestUserRepository.countByCurrentSession(testSession)).thenReturn(0L);
+                Mockito.when(userRepository.findAllByCurrentSession(testSession)).thenReturn(List.of(testUser));
+                Mockito.when(guestUserRepository.findAllByCurrentSession(testSession)).thenReturn(List.of());
+
+                Session result = sessionService.joinSession("ABCDE", dto);
+
+                assertEquals(testSession, result);
+                assertEquals(1, testSession.getJoinedUsers());
+                Mockito.verify(userRepository, Mockito.never()).save(testUser);
+                verify(messagingTemplate).convertAndSend(
+                                Mockito.eq("/topic/session/ABCDE/lobby"),
+                                Mockito.any(Object.class));
+        }
+
+        @Test
+        void joinSession_lateJoinCurrentMovieSendFails_stillReturnsSession() {
+                testSession.setSessionId(1L);
+                testSession.setSessionCode("ABCDE");
+                testSession.setJoinedUsers(1);
+                testSession.setMaxPlayers(5);
+                testSession.setCurrentMovieIndex(1);
+                testSession.setSessionMovieIds(List.of(550L));
+
+                testUser.setCurrentSession(null);
+
+                SessionPutDTO dto = new SessionPutDTO();
+                dto.setId(1L);
+                dto.setToken(token);
+
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate("ABCDE")).thenReturn(testSession);
+                Mockito.when(userRepository.findByToken(token)).thenReturn(testUser);
+                Mockito.when(userRepository.countByCurrentSession(testSession)).thenReturn(1L, 2L);
+                Mockito.when(guestUserRepository.countByCurrentSession(testSession)).thenReturn(0L);
+                Mockito.when(userRepository.findAllByCurrentSession(testSession)).thenReturn(List.of(testUser));
+                Mockito.when(guestUserRepository.findAllByCurrentSession(testSession)).thenReturn(List.of());
+                Mockito.when(tmdbService.getMovieDetails(550L)).thenThrow(new RuntimeException("tmdb failed"));
+
+                Session result = sessionService.joinSession("ABCDE", dto);
+
+                assertEquals(testSession, result);
+                assertEquals(testSession, testUser.getCurrentSession());
+                assertEquals(2, testSession.getJoinedUsers());
+                verify(userRepository).save(testUser);
+                verify(messagingTemplate, Mockito.never()).convertAndSendToUser(
+                                Mockito.anyString(),
+                                Mockito.anyString(),
+                                Mockito.any());
+        }
+
+        @Test
         void vote_guestNotInSession_throwsForbidden() {
                 VotePutDTO dto = new VotePutDTO();
                 dto.setSessionCode("ABCDE");
@@ -838,6 +1101,55 @@ class SessionServiceTest {
                 Movie result = sessionService.forceNextMovie(sessionCode, token);
 
                 assertEquals(testMovie, result);
+        }
+
+        @Test
+        void advanceToNextMovie_validHost_returnsNextMovieFromLockedSession() {
+                testSession.setSessionCode(sessionCode);
+                testSession.setStatus(SessionStatus.ONLINE);
+                testSession.setSessionMovieIds(List.of(550L));
+                testSession.setCurrentMovieIndex(0);
+                testSession.setVotesReceivedThisRound(1);
+                testSession.setJoinedUsers(2);
+
+                testUser.setId(1L);
+
+                Mockito.when(sessionRepository.findSessionBySessionCode(sessionCode))
+                                .thenReturn(testSession);
+                Mockito.when(sessionRepository.findSessionBySessionCodeForUpdate(sessionCode))
+                                .thenReturn(testSession);
+                Mockito.when(userRepository.findByToken(token))
+                                .thenReturn(testUser);
+                Mockito.when(tmdbService.getMovieDetails(550L))
+                                .thenReturn(testMovie);
+                Mockito.when(sessionRepository.save(Mockito.any(Session.class)))
+                                .thenAnswer(i -> i.getArgument(0));
+                Mockito.doNothing().when(messagingTemplate)
+                                .convertAndSend(Mockito.anyString(), Mockito.<Object>any());
+
+                Movie result = sessionService.advanceToNextMovie(sessionCode, token);
+
+                assertEquals(testMovie, result);
+                assertEquals(1, testSession.getCurrentMovieIndex());
+                assertEquals(0, testSession.getVotesReceivedThisRound());
+                assertNotNull(testSession.getRoundStartedAt());
+                verify(sessionRepository).findSessionBySessionCodeForUpdate(sessionCode);
+        }
+
+        @Test
+        void advanceToNextMovie_nonHost_throwsForbidden() {
+                testSession.setHostId(99L);
+                testUser.setId(1L);
+
+                Mockito.when(sessionRepository.findSessionBySessionCode(sessionCode)).thenReturn(testSession);
+                Mockito.when(userRepository.findByToken(token)).thenReturn(testUser);
+
+                ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                                () -> sessionService.advanceToNextMovie(sessionCode, token));
+
+                assertEquals(403, ex.getStatusCode().value());
+                assertEquals("Only the host can advance the session", ex.getReason());
+                Mockito.verify(sessionRepository, Mockito.never()).findSessionBySessionCodeForUpdate(Mockito.anyString());
         }
 
         @Test
@@ -979,6 +1291,88 @@ class SessionServiceTest {
         }
 
         @Test
+        void setVote_staleMovieForPreviousRound_throwsConflictWithoutSavingVote() {
+            testSession.setSessionCode("ABCDE");
+            testSession.setStatus(SessionStatus.ONLINE);
+            testSession.setCurrentMovieIndex(2);
+            testSession.setSessionMovieIds(List.of(10L, 20L));
+
+            VotePutDTO dto = new VotePutDTO();
+            dto.setSessionCode("ABCDE");
+            dto.setToken("token");
+            dto.setUserId(1L);
+            dto.setMovieId(10L);
+            dto.setScore(1);
+
+            testUser.setCurrentSession(testSession);
+
+            Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
+            Mockito.when(userRepository.findByToken("token")).thenReturn(testUser);
+
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> sessionService.setVote(dto));
+
+            assertEquals(409, ex.getStatusCode().value());
+            assertEquals("Vote is stale for the current round", ex.getReason());
+            Mockito.verifyNoInteractions(voteRepository);
+            Mockito.verify(sessionRepository, Mockito.never()).save(Mockito.any(Session.class));
+        }
+
+        @Test
+        void setVote_beforeSessionStarted_throwsConflictWithoutSavingVote() {
+            testSession.setSessionCode("ABCDE");
+            testSession.setStatus(SessionStatus.ONLINE);
+            testSession.setCurrentMovieIndex(0);
+            testSession.setSessionMovieIds(List.of(10L));
+
+            VotePutDTO dto = new VotePutDTO();
+            dto.setSessionCode("ABCDE");
+            dto.setToken("token");
+            dto.setUserId(1L);
+            dto.setMovieId(10L);
+            dto.setScore(1);
+
+            testUser.setCurrentSession(testSession);
+
+            Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
+            Mockito.when(userRepository.findByToken("token")).thenReturn(testUser);
+
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> sessionService.setVote(dto));
+
+            assertEquals(409, ex.getStatusCode().value());
+            assertEquals("Session has not started yet", ex.getReason());
+            Mockito.verifyNoInteractions(voteRepository);
+        }
+
+        @Test
+        void setVote_offlineSession_throwsConflictWithoutSavingVote() {
+            testSession.setSessionCode("ABCDE");
+            testSession.setStatus(SessionStatus.OFFLINE);
+            testSession.setCurrentMovieIndex(1);
+            testSession.setSessionMovieIds(List.of(10L));
+
+            VotePutDTO dto = new VotePutDTO();
+            dto.setSessionCode("ABCDE");
+            dto.setToken("token");
+            dto.setUserId(1L);
+            dto.setMovieId(10L);
+            dto.setScore(1);
+
+            testUser.setCurrentSession(testSession);
+
+            Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
+            Mockito.when(userRepository.findByToken("token")).thenReturn(testUser);
+
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> sessionService.setVote(dto));
+
+            assertEquals(409, ex.getStatusCode().value());
+            assertEquals("Session has ended", ex.getReason());
+            Mockito.verifyNoInteractions(voteRepository);
+        }
+
+        @Test
         void setVote_lastVoteAfterFinalMovie_setsSessionOfflineAndBroadcastsEnd() {
             testSession.setSessionCode("ABCDE");
             testSession.setJoinedUsers(1);
@@ -1030,23 +1424,6 @@ class SessionServiceTest {
 
             assertEquals(403, ex.getStatusCode().value());
             assertEquals("Only the host can force the next movie", ex.getReason());
-        }
-
-        @Test
-        void forceNextMovie_notAllUsersVoted_throwsForbidden() {
-            testSession.setHostId(1L);
-            testSession.setVotesReceivedThisRound(1);
-            testSession.setJoinedUsers(2);
-            testUser.setId(1L);
-
-            Mockito.when(sessionRepository.findSessionBySessionCode("ABCDE")).thenReturn(testSession);
-            Mockito.when(userRepository.findByToken(token)).thenReturn(testUser);
-
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                    () -> sessionService.forceNextMovie("ABCDE", token));
-
-            assertEquals(403, ex.getStatusCode().value());
-            assertEquals("Not all users have voted yet", ex.getReason());
         }
 
         @Test

@@ -15,6 +15,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import ch.uzh.ifi.hase.soprafs26.rest.dto.MovieResultDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionFilterPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionStateGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.VotePutDTO;
 import ch.uzh.ifi.hase.soprafs26.service.model.Movie;
 import ch.uzh.ifi.hase.soprafs26.service.model.SimilarMovie;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,11 +35,11 @@ import ch.uzh.ifi.hase.soprafs26.constant.SessionStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Session;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionPutDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.SessionStatusGetDTO;
 import ch.uzh.ifi.hase.soprafs26.service.SessionService;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Instant;
 import java.util.List;
 
 @WebMvcTest(SessionController.class)
@@ -364,6 +366,109 @@ class SessionControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON);
 
                 mockMvc.perform(getRequest)
+                                .andExpect(status().isConflict());
+        }
+
+        @Test
+        void advanceSession_validHostToken_returnsMovie() throws Exception {
+                given(sessionService.advanceToNextMovie("test1234", "hostToken")).willReturn(testMovie);
+
+                mockMvc.perform(post("/session/test1234/advance")
+                                .header("Authorization", "hostToken"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.movieId", is(550)))
+                                .andExpect(jsonPath("$.title", is("Fight Club")));
+        }
+
+        @Test
+        void advanceSession_nonHostToken_returnsForbidden() throws Exception {
+                given(sessionService.advanceToNextMovie("test1234", "userToken"))
+                                .willThrow(new ResponseStatusException(HttpStatus.FORBIDDEN,
+                                                "Only the host can advance the session"));
+
+                mockMvc.perform(post("/session/test1234/advance")
+                                .header("Authorization", "userToken"))
+                                .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void getSessionState_validSessionCode_returnsState() throws Exception {
+                SessionStateGetDTO state = new SessionStateGetDTO();
+                state.setSessionCode("test1234");
+                state.setStatus("PLAYING");
+                state.setCurrentMovieIndex(1);
+                state.setCurrentMovie(ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper.INSTANCE
+                                .convertEntitytoMovieGetDTO(testMovie));
+                state.setRoundStartedAt(Instant.parse("2026-05-13T12:00:00Z"));
+                state.setTimePerRound(15);
+                state.setJoinedUsers(3);
+                state.setVotesReceived(2);
+                state.setTotalRounds(5);
+                state.setUsernames(List.of("Alice", "Bob", "Charlie"));
+
+                given(sessionService.getSessionState("test1234")).willReturn(state);
+
+                mockMvc.perform(get("/session/test1234/state")
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sessionCode", is("test1234")))
+                                .andExpect(jsonPath("$.status", is("PLAYING")))
+                                .andExpect(jsonPath("$.currentMovieIndex", is(1)))
+                                .andExpect(jsonPath("$.currentMovie.movieId", is(550)))
+                                .andExpect(jsonPath("$.timePerRound", is(15)))
+                                .andExpect(jsonPath("$.joinedUsers", is(3)))
+                                .andExpect(jsonPath("$.votesReceived", is(2)))
+                                .andExpect(jsonPath("$.totalRounds", is(5)))
+                                .andExpect(jsonPath("$.usernames", hasSize(3)));
+        }
+
+        @Test
+        void getSessionState_invalidSessionCode_returnsNotFound() throws Exception {
+                given(sessionService.getSessionState("missing"))
+                                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                                "Session could not be found."));
+
+                mockMvc.perform(get("/session/missing/state")
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void setVote_validInput_returnsSuccessMessage() throws Exception {
+                VotePutDTO dto = new VotePutDTO();
+                dto.setSessionCode("test1234");
+                dto.setToken("userToken");
+                dto.setUserId(1L);
+                dto.setMovieId(550L);
+                dto.setScore(1);
+
+                Mockito.doNothing().when(sessionService).setVote(Mockito.any(VotePutDTO.class));
+
+                mockMvc.perform(post("/session/test1234/vote")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(asJsonString(dto)))
+                                .andExpect(status().isOk())
+                                .andExpect(content().string("Vote recorded successfully"));
+
+                Mockito.verify(sessionService).setVote(Mockito.any(VotePutDTO.class));
+        }
+
+        @Test
+        void setVote_staleVote_returnsConflict() throws Exception {
+                VotePutDTO dto = new VotePutDTO();
+                dto.setSessionCode("test1234");
+                dto.setToken("userToken");
+                dto.setUserId(1L);
+                dto.setMovieId(550L);
+                dto.setScore(1);
+
+                Mockito.doThrow(new ResponseStatusException(HttpStatus.CONFLICT,
+                                "Vote is stale for the current round"))
+                                .when(sessionService).setVote(Mockito.any(VotePutDTO.class));
+
+                mockMvc.perform(post("/session/test1234/vote")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(asJsonString(dto)))
                                 .andExpect(status().isConflict());
         }
 
