@@ -38,6 +38,7 @@ public class SessionController {
 
         SessionGetDTO dto = DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(createdSession);
         dto.setUsernames(sessionService.getJoinedUsernames(createdSession));
+        dto.setHostUsername(sessionService.getHostUsername(createdSession));
         return dto;
     }
 
@@ -49,6 +50,7 @@ public class SessionController {
 
         SessionGetDTO dto = DTOMapper.INSTANCE.convertEntitytoSessionGetDTO(session);
         dto.setUsernames(sessionService.getJoinedUsernames(session));
+        dto.setHostUsername(sessionService.getHostUsername(session));
         return dto;
     }
 
@@ -137,6 +139,7 @@ public class SessionController {
 
         SessionStatusGetDTO dto = DTOMapper.INSTANCE.convertEntitytoSessionStatusGetDTO(session);
         dto.setUsernames(sessionService.getJoinedUsernames(session));
+        dto.setHostUsername(sessionService.getHostUsername(session));
         return dto;
     }
 }

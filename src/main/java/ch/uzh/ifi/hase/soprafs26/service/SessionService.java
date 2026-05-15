@@ -446,6 +446,7 @@ public class SessionService {
         dto.setVotesReceived(session.getVotesReceivedThisRound());
         dto.setTotalRounds(session.getRoundLimit());
         dto.setUsernames(getJoinedUsernames(session));
+        dto.setHostUsername(getHostUsername(session));
 
         Movie currentMovie = tryGetCurrentMovie(session);
         if (currentMovie != null) {
@@ -696,6 +697,25 @@ public class SessionService {
             usernames.add(guest.getUsername());
         }
         return usernames;
+    }
+
+    public String getHostUsername(Session session) {
+        Long hostId = session.getHostId();
+        if (hostId == null) {
+            return null;
+        }
+
+        User user = userRepository.findById(hostId).orElse(null);
+        if (user != null) {
+            return user.getUsername();
+        }
+
+        GuestUser guestUser = guestUserRepository.findById(hostId).orElse(null);
+        if (guestUser != null) {
+            return guestUser.getUsername();
+        }
+
+        return null;
     }
 
     private int refreshJoinedUsers(Session session) {

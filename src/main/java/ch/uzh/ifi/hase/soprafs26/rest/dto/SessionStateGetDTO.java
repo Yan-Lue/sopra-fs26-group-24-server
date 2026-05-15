@@ -14,6 +14,7 @@ public class SessionStateGetDTO {
     private Integer votesReceived;
     private Integer totalRounds;
     private List<String> usernames;
+    private String hostUsername;
 
     public String getSessionCode() {
         return sessionCode;
@@ -93,5 +94,13 @@ public class SessionStateGetDTO {
 
     public void setUsernames(List<String> usernames) {
         this.usernames = usernames;
+    }
+
+    public String getHostUsername() {
+        return hostUsername;
+    }
+
+    public void setHostUsername(String hostUsername) {
+        this.hostUsername = hostUsername;
     }
 }
