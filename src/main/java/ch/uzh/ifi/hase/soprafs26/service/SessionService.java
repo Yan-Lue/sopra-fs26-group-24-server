@@ -314,14 +314,6 @@ public class SessionService {
 
         ensureHost(session, token, "Only the host can force the next movie");
 
-        Integer actualVotes = session.getVotesReceivedThisRound();
-
-        Integer joinedUsers = session.getJoinedUsers();
-
-        if (joinedUsers != null && actualVotes < joinedUsers) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not all users have voted yet");
-        }
-
         return getNextMovie(sessionCode);
     }
 
