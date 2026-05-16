@@ -9,6 +9,7 @@ public class SessionGetDTO {
     private long hostId;
     private Integer joinedUsers;
     private List<String> usernames;
+    private String hostUsername;
 
     public String getSessionName() {
         return sessionName;
@@ -64,5 +65,13 @@ public class SessionGetDTO {
 
     public void setUsernames(List<String> usernames) {
         this.usernames = usernames;
+    }
+
+    public String getHostUsername() {
+        return hostUsername;
+    }
+
+    public void setHostUsername(String hostUsername) {
+        this.hostUsername = hostUsername;
     }
 }

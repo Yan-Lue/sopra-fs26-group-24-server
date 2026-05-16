@@ -6,6 +6,7 @@ public class SessionStatusGetDTO {
     private Integer maxPlayers;
     private Integer joinedUsers;
     private List<String> usernames;
+    private String hostUsername;
 
     public Integer getMaxPlayers() {
         return maxPlayers;
@@ -29,6 +30,14 @@ public class SessionStatusGetDTO {
 
     public void setUsernames(List<String> usernames) {
         this.usernames = usernames;
+    }
+
+    public String getHostUsername() {
+        return hostUsername;
+    }
+
+    public void setHostUsername(String hostUsername) {
+        this.hostUsername = hostUsername;
     }
 
 }

@@ -99,6 +99,8 @@ class SessionControllerTest {
                 sessionPostDTO.setHostId(1L);
 
                 given(sessionService.createSession(Mockito.any(), Mockito.any())).willReturn(testSession);
+                given(sessionService.getJoinedUsernames(Mockito.any())).willReturn(List.of("HostUser"));
+                given(sessionService.getHostUsername(Mockito.any())).willReturn("HostUser");
                 MockHttpServletRequestBuilder postRequest = post("/session")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(asJsonString(sessionPostDTO));
@@ -107,8 +109,8 @@ class SessionControllerTest {
                                 .andExpect(status().isCreated())
                                 .andExpect(jsonPath("$.sessionCode", is(testSession.getSessionCode())))
                                 .andExpect(jsonPath("$.sessionId", is(testSession.getSessionId().intValue())))
-                                .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())));
-
+                                .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())))
+                                .andExpect(jsonPath("$.hostUsername", is("HostUser")));
         }
 
         // Session Creation not successful
@@ -137,6 +139,8 @@ class SessionControllerTest {
         void joinSession_validSessionCode_getSuccessful() throws Exception {
 
                 given(sessionService.joinSession(anyString(), any(SessionPutDTO.class))).willReturn(testSession);
+                given(sessionService.getJoinedUsernames(Mockito.any())).willReturn(List.of("HostUser", "Joiner"));
+                given(sessionService.getHostUsername(Mockito.any())).willReturn("HostUser");
 
                 SessionPutDTO sessionPutDTO = new SessionPutDTO();
                 sessionPutDTO.setToken("userToken");
@@ -150,7 +154,8 @@ class SessionControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.sessionCode", is(testSession.getSessionCode())))
                                 .andExpect(jsonPath("$.sessionId", is(1)))
-                                .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())));
+                                .andExpect(jsonPath("$.sessionToken", is(testSession.getSessionToken())))
+                                .andExpect(jsonPath("$.hostUsername", is("HostUser")));
         }
 
         // Getting a session for joining not successfully
@@ -405,6 +410,7 @@ class SessionControllerTest {
                 state.setVotesReceived(2);
                 state.setTotalRounds(5);
                 state.setUsernames(List.of("Alice", "Bob", "Charlie"));
+                state.setHostUsername("Alice");
 
                 given(sessionService.getSessionState("test1234")).willReturn(state);
 
@@ -419,7 +425,8 @@ class SessionControllerTest {
                                 .andExpect(jsonPath("$.joinedUsers", is(3)))
                                 .andExpect(jsonPath("$.votesReceived", is(2)))
                                 .andExpect(jsonPath("$.totalRounds", is(5)))
-                                .andExpect(jsonPath("$.usernames", hasSize(3)));
+                                .andExpect(jsonPath("$.usernames", hasSize(3)))
+                                .andExpect(jsonPath("$.hostUsername", is("Alice")));
         }
 
         @Test
@@ -516,6 +523,7 @@ class SessionControllerTest {
                 // The second call for usernames
                 List<String> mockUsernames = List.of("Alice", "Bob", "Charlie");
                 given(sessionService.getJoinedUsernames(session)).willReturn(mockUsernames);
+                given(sessionService.getHostUsername(session)).willReturn("Alice");
 
                 MockHttpServletRequestBuilder getRequest = get("/session/test1234/users")
                                 .header("Authorization", "userToken")
@@ -526,7 +534,8 @@ class SessionControllerTest {
                                 .andExpect(jsonPath("$.maxPlayers", is(5)))
                                 .andExpect(jsonPath("$.joinedUsers", is(3)))
                                 .andExpect(jsonPath("$.usernames", hasSize(3)))
-                                .andExpect(jsonPath("$.usernames[0]", is("Alice")));
+                                .andExpect(jsonPath("$.usernames[0]", is("Alice")))
+                                .andExpect(jsonPath("$.hostUsername", is("Alice")));
         }
 
         @Test
