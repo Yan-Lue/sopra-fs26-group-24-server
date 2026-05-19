@@ -11,7 +11,7 @@ The server is structured into four primary layers to ensure a clean separation o
 1. **Rest Controllers:** Handle incoming HTTP requests from the React client.
     - _Reference:_ [`UserController.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hasel/sopra/controller/UserController.java) - Delegates requests concerning user registration, login, and profile updates.
 2. **Service Layer:** Contains the core business logic, including all functionality about users.
-    - _Reference:_ [`SessionService.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs26/service/UserService.java) - Manages and coordinates the core logic of user features such as registration and login.
+    - _Reference:_ [`UserService.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs26/service/UserService.java) - Manages and coordinates the core logic of user features such as registration and login.
 3. **Domain Models:** Represents the data structures for Users, Movies, and Groups.
     - _Reference:_ [`User.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs26/entity/User.java) - Defines the user entity and its relationship to the database.
 4. **Repository Layer:** Handles database access via JPA.
