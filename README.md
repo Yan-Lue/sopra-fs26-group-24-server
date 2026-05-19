@@ -1,6 +1,6 @@
 # UWatch - Interactive Movie Finder
 
-This production was conducted during the Software Practical Course at the Department of Informatics at the Unviersity of Zurich, during Spring Term 2026. The scope was to build a web-bases application that uses at least one external API and features collaborative real-time user experience. The application is called UWatch and is designed to be an interactive movie finder, that can be used by a group of friends in order to find a movie to watch, that suits everybodies taste. The key functionality is to present several movies - based on filters chosen by the host of session - to the participating users and let them decide wheter to like or dislike a respective movie. In the end a final scorebord for every movie is presented together with additioanl similar recommendations.
+This production was conducted during the Software Practical Course at the Department of Informatics at the University of Zurich, during Spring Term 2026. The scope was to build a web-based application that uses at least one external API and features a collaborative, real-time user experience. The application is called UWatch and is designed to be an interactive movie finder, that can be used by a group of friends in order to find a movie to watch, that suits everybody's taste. The key functionality is to present several movies - based on filters chosen by the host of session - to the participating users and let them decide whether to like or dislike a respective movie. In the end a final scoreboard for every movie is presented, together with additional similar recommendations.
 
 ---
 
@@ -136,7 +136,11 @@ For the versions available, see the [tags on this repository](https://github.com
 
 ## Roadmap
 
-Add some features here, that we plan to do next:
+New features that could be added to contribute to our project: 
+- Possibility to watch movie-trailers. Either provided as a link on the results page and/ or by directly embedding in vote-round. 
+- Redirect all player to the new round when the host starts a new round. 
+- Implement a visually catching alert (e.g. flashing, message..) for the last seconds of each voting.
+- Search for users and view their profile, add users to friends list, quick invite friends to lobby.
 
 ## Authors
 
