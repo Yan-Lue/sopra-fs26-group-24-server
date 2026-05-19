@@ -17,6 +17,8 @@ The server is structured into four primary layers to ensure a clean separation o
 4. **Repository Layer:** Handles database access via JPA.
     - _Example:_ [`UserRepository.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs26/repository/UserRepository.java)
 
+This is a top-down approach that starts at the top with the Rest Controllers that receive HTTP requests, converts DTOs into entities through the DTOMapper, and passes them on to the Services Layer for processing. The Services Layer processes the core business logic using the Domain Models (JPA entities) that make up the database structure. Lastly, the Repositories Layer is responsible for saving and retrieving those entities from the database by the services.
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
