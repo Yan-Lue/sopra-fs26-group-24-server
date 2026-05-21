@@ -139,7 +139,7 @@ For the versions available, see the [tags on this repository](https://github.com
 ## Roadmap
 
 New features that could be added to contribute to our project: 
-- Possibility to watch movie-trailers. Either provided as a link on the results page and/ or by directly embedding in vote-round. 
+- Possibility to watch movie-trailers by requesting a link to the trailer from TMDB or other APIs. 
 - Redirect all players to the new round when the host starts a new round. 
 - Search for users and view their profile, add users to friends list, quick invite friends to lobby.
 
