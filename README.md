@@ -1,6 +1,6 @@
 # UWatch - Interactive Movie Finder
 
-This production was conducted during the Software Practical Course at the Department of Informatics at the Unviersity of Zurich, during Spring Term 2026. The scope was to build a web-bases application that uses at least one external API and features collaborative real-time user experience. The application is called UWatch and is designed to be an interactive movie finder, that can be used by a group of friends in order to find a movie to watch, that suits everybodies taste. The key functionality is to present several movies - based on filters chosen by the host of session - to the participating users and let them decide wheter to like or dislike a respective movie. In the end a final scorebord for every movie is presented together with additioanl similar recommendations.
+This production was conducted during the Software Practical Course at the Department of Informatics at the University of Zurich, during Spring Term 2026. The scope was to build a web-based application that uses at least one external API and features a collaborative, real-time user experience. The application is called UWatch and is designed to be an interactive movie finder, that can be used by a group of friends in order to find a movie to watch, that suits everybody's taste. The key functionality is to present several movies - based on filters chosen by the host of session - to the participating users and let them decide whether to like or dislike a respective movie. In the end a final scoreboard for every movie is presented, together with additional similar recommendations.
 
 ---
 
@@ -11,11 +11,13 @@ The server is structured into four primary layers to ensure a clean separation o
 1. **Rest Controllers:** Handle incoming HTTP requests from the React client.
     - _Reference:_ [`UserController.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hasel/sopra/controller/UserController.java) - Delegates requests concerning user registration, login, and profile updates.
 2. **Service Layer:** Contains the core business logic, including all functionality about users.
-    - _Reference:_ [`SessionService.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs26/service/UserService.java) - Manages and coordinates the core logic of user features such as registration and login.
+    - _Reference:_ [`UserService.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs26/service/UserService.java) - Manages and coordinates the core logic of user features such as registration and login.
 3. **Domain Models:** Represents the data structures for Users, Movies, and Groups.
     - _Reference:_ [`User.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs26/entity/User.java) - Defines the user entity and its relationship to the database.
 4. **Repository Layer:** Handles database access via JPA.
     - _Example:_ [`UserRepository.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs26/repository/UserRepository.java)
+
+This is a top-down approach that starts at the top with the Rest Controllers that receive HTTP requests, converts DTOs into entities through the DTOMapper, and passes them on to the Services Layer for processing. The Services Layer processes the core business logic using the Domain Models (JPA entities) that make up the database structure. Lastly, the Repositories Layer is responsible for saving and retrieving those entities from the database by the services.
 
 ## Getting Started
 
@@ -136,7 +138,10 @@ For the versions available, see the [tags on this repository](https://github.com
 
 ## Roadmap
 
-Add some features here, that we plan to do next:
+New features that could be added to contribute to our project: 
+- Possibility to watch movie-trailers. Either provided as a link on the results page and/ or by directly embedding in vote-round. 
+- Redirect all player to the new round when the host starts a new round. 
+- Search for users and view their profile, add users to friends list, quick invite friends to lobby.
 
 ## Authors
 
