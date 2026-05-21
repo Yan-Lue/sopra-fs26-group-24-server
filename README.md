@@ -1,6 +1,6 @@
 # UWatch - Interactive Movie Finder
 
-This production was conducted during the Software Practical Course at the Department of Informatics at the University of Zurich, during Spring Term 2026. The scope was to build a web-based application that uses at least one external API and features a collaborative, real-time user experience. The application is called UWatch and is designed to be an interactive movie finder, that can be used by a group of friends in order to find a movie to watch, that suits everybody's taste. The key functionality is to present several movies - based on filters chosen by the host of session - to the participating users and let them decide whether to like or dislike a respective movie. In the end a final scoreboard for every movie is presented, together with additional similar recommendations.
+This production was conducted during the Software Practical Course at the Department of Informatics at the University of Zurich, during Spring Term 2026. The scope was to build a web-based application that uses at least one external API and features a collaborative, real-time user experience. The application is called UWatch and is designed to be an interactive movie finder that can be used by a group of friends in order to find a movie to watch that suits everybody's taste. The key functionality is to present several movies - based on filters chosen by the host of a session - to the participating users and let them decide whether to like or dislike a respective movie. In the end, a final scoreboard for every movie is presented together with additional similar recommendations.
 
 ---
 
@@ -9,7 +9,7 @@ This production was conducted during the Software Practical Course at the Depart
 The server is structured into four primary layers to ensure a clean separation of concerns:
 
 1. **Rest Controllers:** Handle incoming HTTP requests from the React client.
-    - _Reference:_ [`UserController.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hasel/sopra/controller/UserController.java) - Delegates requests concerning user registration, login, and profile updates.
+    - _Reference:_ [`UserController.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs26/controller/UserController.java) - Delegates requests concerning user registration, login, and profile updates.
 2. **Service Layer:** Contains the core business logic, including all functionality about users.
     - _Reference:_ [`UserService.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs26/service/UserService.java) - Manages and coordinates the core logic of user features such as registration and login.
 3. **Domain Models:** Represents the data structures for Users, Movies, and Groups.
@@ -17,7 +17,7 @@ The server is structured into four primary layers to ensure a clean separation o
 4. **Repository Layer:** Handles database access via JPA.
     - _Example:_ [`UserRepository.java`](https://github.com/Yan-Lue/sopra-fs26-group-24-server/blob/main/src/main/java/ch/uzh/ifi/hase/soprafs26/repository/UserRepository.java)
 
-This is a top-down approach that starts at the top with the Rest Controllers that receive HTTP requests, converts DTOs into entities through the DTOMapper, and passes them on to the Services Layer for processing. The Services Layer processes the core business logic using the Domain Models (JPA entities) that make up the database structure. Lastly, the Repositories Layer is responsible for saving and retrieving those entities from the database by the services.
+This is a top-down approach that starts at the top with the Rest Controllers that receive HTTP requests, convert DTOs into entities through the DTOMapper, and passes them on to the Service Layer for processing. The Service Layer processes the core business logic using the Domain Models (JPA entities) that make up the database structure. Lastly, the Repository Layer is responsible for saving and retrieving those entities from the database by the services.
 
 ## Getting Started
 
@@ -40,7 +40,7 @@ gradle -version
 
 #### Additional Prerequisites
 
-This project uses an external API called [`Tmdb`](https://developer.themoviedb.org/reference/intro/getting-started). To retrieve movies, suggestions and movie information. In order to access this API, and [`API-key`](https://developer.themoviedb.org/docs/getting-started) is required and has to be stored in an .env file (Make sure to add it to the .gitignore!)
+This project uses an external API called [`Tmdb`](https://developer.themoviedb.org/reference/intro/getting-started) to retrieve movies, suggestions and movie information. In order to access this API, an [`API-key`](https://developer.themoviedb.org/docs/getting-started) is required and has to be stored in an .env file (Make sure to add it to the .gitignore!)
 
 The external database is hosted on Supabase. In order to test the setup locally, make sure to create an `.env` file in the root of the project for local development:
 
@@ -52,7 +52,7 @@ DB_PASSWORD=the-respective-user
 DB_NAME=the-respective-user
 ```
 
-The setup of the database is then done automatically. Please reach out, in order to receive the necessary credentials as well as to be added to the supabase project.
+The setup of the database is then done automatically. Please reach out in order to receive the necessary credentials as well as to be added to the Supabase project.
 
 ### Installing
 
@@ -140,7 +140,7 @@ For the versions available, see the [tags on this repository](https://github.com
 
 New features that could be added to contribute to our project: 
 - Possibility to watch movie-trailers. Either provided as a link on the results page and/ or by directly embedding in vote-round. 
-- Redirect all player to the new round when the host starts a new round. 
+- Redirect all players to the new round when the host starts a new round. 
 - Search for users and view their profile, add users to friends list, quick invite friends to lobby.
 
 ## Authors
@@ -153,7 +153,7 @@ New features that could be added to contribute to our project:
 
 ## License
 
-This project is licensed under the Apache License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the Apache License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
